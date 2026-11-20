@@ -41,11 +41,11 @@ export function LatestReleaseCard({
   };
 
   return (
-    <div className="flex gap-3.5 p-3 rounded-2xl border border-white/10 bg-slate-950/60 hover:border-white/20 transition-all">
+    <div className="flex gap-3.5 p-3.5 rounded-2xl liquid-glass shadow-lg transition-all hover:scale-[1.01]">
       {/* Cover Image Thumbnail */}
       <Link
         href={`/manga/${slug}`}
-        className="relative h-24 w-18 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] group"
+        className="relative h-24 w-18 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/[0.04] group shadow-sm"
       >
         {currentSrc && !imageError ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -69,13 +69,13 @@ export function LatestReleaseCard({
         <div>
           <div className="flex items-center gap-1.5 mb-1">
             {contentType && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.2 rounded bg-white/[0.08] text-sky-300 border border-white/10">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full liquid-glass-chip text-sky-300">
                 {contentType}
               </span>
             )}
           </div>
           <Link href={`/manga/${slug}`}>
-            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate hover:text-sky-400 transition-colors">
+            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate hover:text-sky-300 transition-colors">
               {title}
             </h4>
           </Link>
@@ -88,12 +88,12 @@ export function LatestReleaseCard({
               <Link
                 key={ch.id}
                 href={`/read/${ch.id}`}
-                className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 hover:border-sky-500/40 hover:bg-sky-500/10 transition-colors group/ch text-xs"
+                className="flex items-center justify-between px-2.5 py-1.5 rounded-xl liquid-glass-chip hover:bg-white/20 transition-colors group/ch text-xs"
               >
-                <span className="font-mono font-semibold text-slate-200 group-hover/ch:text-sky-300 transition-colors">
+                <span className="font-mono font-semibold text-slate-200 group-hover/ch:text-white transition-colors">
                   Chapter {ch.chapterNumber}
                 </span>
-                <span className="text-[10px] font-mono text-muted-foreground">
+                <span className="text-[10px] font-mono text-slate-400">
                   {formatRelativeTime(ch.releaseDate || ch.createdAt)}
                 </span>
               </Link>

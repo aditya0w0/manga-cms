@@ -8,17 +8,17 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-white/25 hover:from-sky-400 hover:to-blue-500 active:scale-[0.98]",
+          "bg-slate-100 hover:bg-white text-slate-950 font-bold shadow-lg shadow-black/25 border border-white/80 active:scale-[0.98]",
         secondary:
-          "bg-white/[0.08] hover:bg-white/[0.14] text-foreground border border-white/15 backdrop-blur-xl shadow-sm hover:border-white/25 active:scale-[0.98]",
+          "bg-white/[0.08] hover:bg-white/[0.14] text-slate-200 hover:text-white border border-white/15 backdrop-blur-xl shadow-sm hover:border-white/25 active:scale-[0.98]",
         destructive:
-          "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-lg shadow-rose-500/25 border border-white/20 hover:from-rose-500 hover:to-red-500 active:scale-[0.98]",
+          "bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/30 border border-rose-400/30 active:scale-[0.98]",
         outline:
           "border border-white/15 bg-transparent hover:bg-white/[0.06] text-foreground backdrop-blur-md active:scale-[0.98]",
         ghost:
           "hover:bg-white/[0.08] text-foreground active:scale-[0.98]",
         glass:
-          "bg-gradient-to-b from-white/[0.14] to-white/[0.03] text-foreground border border-white/20 backdrop-blur-2xl shadow-xl shadow-black/30 hover:border-white/35 active:scale-[0.98]",
+          "bg-white/[0.10] hover:bg-white/[0.18] text-white border border-white/20 backdrop-blur-2xl shadow-xl shadow-black/30 hover:border-white/35 active:scale-[0.98]",
         link:
           "text-sky-400 underline-offset-4 hover:underline",
       },

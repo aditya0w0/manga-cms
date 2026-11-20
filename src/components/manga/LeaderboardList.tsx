@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Star, Eye } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { getSafeImageUrl, getProxyFallbackUrl } from "@/lib/image-utils";
+import { useLiquidGlass } from "@/lib/liquid-glass";
 
 export interface LeaderboardItem {
   id: string;
@@ -18,10 +19,21 @@ export interface LeaderboardItem {
 }
 
 export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
+  const panelRef = useLiquidGlass<HTMLDivElement>({
+    scale: -75,
+    chroma: 4,
+    border: 0.05,
+    blur: 0,
+    saturate: 1.4,
+  });
+
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="flex flex-col h-full rounded-3xl border border-white/10 bg-slate-950/70 p-5 sm:p-6 shadow-xl">
+    <div
+      ref={panelRef}
+      className="flex flex-col h-full rounded-[28px] liquid-glass liquid-glass-glare p-5 sm:p-6 shadow-2xl justify-between"
+    >
       <div className="flex items-center justify-between pb-4 border-b border-white/10">
         <div>
           <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
@@ -33,7 +45,7 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
         </div>
         <Link
           href="/browse?sortBy=popularity"
-          className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+          className="text-xs font-semibold text-slate-300 hover:text-white transition-colors"
         >
           Full Rankings
         </Link>
@@ -44,12 +56,12 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
           const rank = index + 1;
           const rankColor =
             rank === 1
-              ? "text-amber-400 bg-amber-400/10 border-amber-400/30"
+              ? "text-amber-300 bg-amber-400/20 border-amber-300/40"
               : rank === 2
-              ? "text-slate-200 bg-white/10 border-white/20"
+              ? "text-slate-100 bg-white/15 border-white/30"
               : rank === 3
-              ? "text-amber-600 bg-amber-600/10 border-amber-600/30"
-              : "text-slate-400 bg-white/[0.04] border-white/10";
+              ? "text-amber-500 bg-amber-600/20 border-amber-500/40"
+              : "text-slate-300 bg-white/5 border-white/10";
 
           const latestChapter = item.chapters?.[0];
 
@@ -57,17 +69,17 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
             <Link
               key={item.id}
               href={`/manga/${item.slug}`}
-              className="group flex items-center gap-3.5 py-3 transition-colors hover:bg-white/[0.03] px-2 rounded-xl"
+              className="group flex items-center gap-3 py-2.5 transition-colors hover:bg-white/[0.05] px-2 rounded-2xl"
             >
               {/* Numeric Rank Marker */}
               <div
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border font-mono text-xs font-black ${rankColor}`}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border font-mono text-xs font-black shadow-sm ${rankColor}`}
               >
                 {rank < 10 ? `0${rank}` : rank}
               </div>
 
               {/* Cover Poster */}
-              <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
+              <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/5 shadow-sm">
                 {item.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -92,7 +104,7 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
 
               {/* Comic Details */}
               <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-foreground truncate group-hover:text-sky-400 transition-colors">
+                <h4 className="text-xs font-bold text-foreground truncate group-hover:text-white transition-colors">
                   {item.title}
                 </h4>
                 <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">

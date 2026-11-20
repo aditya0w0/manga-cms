@@ -6,11 +6,13 @@ import { MangaCard } from "@/components/manga/MangaCard";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Search, Filter, RotateCcw, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLiquidGlass } from "@/lib/liquid-glass";
 
 function BrowseContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const filterRef = useLiquidGlass<HTMLDivElement>({ scale: -80, chroma: 4, blur: 0, saturate: 1.4 });
 
   const qParam = searchParams.get("q") || "";
   const genreParam = searchParams.get("genre") || "";
@@ -88,7 +90,10 @@ function BrowseContent() {
   return (
     <div className="flex flex-col space-y-8 pb-16">
       {/* Header & Filter Controls */}
-      <div className="rounded-3xl liquid-glass p-6 sm:p-8 shadow-sm space-y-6">
+      <div
+        ref={filterRef}
+        className="rounded-[28px] liquid-glass liquid-glass-glare p-6 sm:p-8 shadow-2xl space-y-6"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground">

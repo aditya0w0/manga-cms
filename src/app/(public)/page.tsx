@@ -100,7 +100,7 @@ export default async function HomePage() {
 
       {/* 4. Taxonomy & Genre Discovery Strip */}
       {genres.length > 0 && (
-        <section className="rounded-3xl border border-white/10 bg-slate-950/60 p-6 sm:p-8 space-y-4">
+        <section className="rounded-[28px] liquid-glass liquid-glass-glare p-6 sm:p-8 space-y-4 shadow-2xl">
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
               Browse by Genre
@@ -109,15 +109,15 @@ export default async function HomePage() {
               Filter titles across themes and storytelling styles
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-2.5 pt-1">
             {genres.map((g) => (
               <Link
                 key={g.slug}
                 href={`/browse?genre=${g.slug}`}
-                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:text-sky-300 hover:border-sky-500/40 hover:bg-sky-500/10 transition-colors"
+                className="flex items-center gap-2 rounded-full liquid-glass-chip px-4 py-2 text-xs font-semibold text-slate-200 hover:text-white transition-all"
               >
                 <span>{g.name}</span>
-                <span className="text-[10px] font-mono text-muted-foreground">
+                <span className="text-[11px] font-mono text-slate-400 font-normal">
                   {g._count.mangas}
                 </span>
               </Link>

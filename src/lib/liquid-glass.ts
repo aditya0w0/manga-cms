@@ -1,43 +1,51 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, RefObject } from "react";
+
+export interface LiquidGlassOptions {
+  scale?: number;       // displacement strength; negative = magnifying bulge (-60 to -180)
+  chroma?: number;      // per-channel scale stagger (prism fringe); 0 disables
+  border?: number;      // neutral interior inset fraction (0.05 to 0.1)
+  mapBlur?: number;     // edge curvature softness in px
+  blur?: number;        // backdrop blur in px
+  saturate?: number;    // backdrop saturation multiplier
+  radius?: number | null; // corner radius override in px (defaults to computed border-radius)
+  fallbackBlur?: number; // frosted blur fallback on Safari/Firefox
+}
+
+export interface LiquidGlassInstance {
+  supported: boolean;
+  refresh: () => void;
+  destroy: () => void;
+}
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 let uid = 0;
 let svgDefs: SVGDefsElement | null = null;
 
-// Determine if the client environment supports SVG filters via backdrop-filter
-function isRefractionSupported(): boolean {
-  if (typeof window === "undefined" || typeof document === "undefined") {
-    return false;
-  }
+// Chromium supports SVG filters via backdrop-filter; Safari and Firefox fallback
+const isChromiumSupported = (): boolean => {
+  if (typeof window === "undefined" || typeof document === "undefined") return false;
   const ua = navigator.userAgent;
-  const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg|Arc/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
   const isFirefox = /Firefox/.test(ua);
   if (isSafari || isFirefox) return false;
-  if (!CSS.supports("backdrop-filter", "url(#lg-probe)")) return false;
+  if (!CSS.supports("backdrop-filter", "url(#lg)")) return false;
   try {
     const c = document.createElement("canvas");
     c.width = c.height = 4;
-    return !!c.getContext("2d")?.getImageData(0, 0, 1, 1);
+    c.getContext("2d")?.getImageData(0, 0, 1, 1);
+    return true;
   } catch {
     return false;
   }
-}
+};
 
 function ensureDefs(): SVGDefsElement {
-  if (svgDefs && svgDefs.isConnected) return svgDefs;
-  const existing = document.getElementById("liquid-glass-svg-root");
-  if (existing) {
-    const defs = existing.querySelector("defs");
-    if (defs) {
-      svgDefs = defs;
-      return svgDefs;
-    }
+  if (svgDefs && document.body.contains(svgDefs.ownerSVGElement)) {
+    return svgDefs;
   }
-
   const svg = document.createElementNS(SVG_NS, "svg");
-  svg.id = "liquid-glass-svg-root";
   svg.setAttribute("width", "0");
   svg.setAttribute("height", "0");
   svg.setAttribute("aria-hidden", "true");
@@ -49,7 +57,7 @@ function ensureDefs(): SVGDefsElement {
   return svgDefs;
 }
 
-// Displacement map generator using red (X) and blue (Y) gradients with neutral interior
+// Generates the red/blue displacement map via canvas data URL
 function makeMap(
   w: number,
   h: number,
@@ -58,51 +66,49 @@ function makeMap(
   mapBlur: number
 ): string {
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(16, Math.floor(w));
-  canvas.height = Math.max(16, Math.floor(h));
+  canvas.width = Math.max(1, Math.round(w));
+  canvas.height = Math.max(1, Math.round(h));
   const ctx = canvas.getContext("2d");
   if (!ctx) return "";
 
-  // Red ramp: X displacement
-  const gx = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  // Red ramp: left to right encodes X displacement
+  const gx = ctx.createLinearGradient(0, 0, w, 0);
   gx.addColorStop(0, "rgb(0,0,0)");
   gx.addColorStop(1, "rgb(255,0,0)");
   ctx.fillStyle = gx;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, w, h);
 
-  // Blue ramp: Y displacement
-  const gy = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  // Blue ramp: top to bottom encodes Y displacement
+  const gy = ctx.createLinearGradient(0, 0, 0, h);
   gy.addColorStop(0, "rgb(0,0,0)");
   gy.addColorStop(1, "rgb(0,0,255)");
   ctx.globalCompositeOperation = "difference";
   ctx.fillStyle = gy;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, w, h);
 
-  // Inset neutral 50% gray rounded rect so only rims bend
+  // Neutralized interior: blurred 50% gray rounded rect
   ctx.globalCompositeOperation = "source-over";
-  const inset = Math.max(4, Math.floor(border * Math.min(canvas.width, canvas.height)));
+  const inset = border * Math.min(w, h);
   ctx.filter = `blur(${mapBlur}px)`;
-  ctx.fillStyle = "rgba(128,128,128,0.95)";
+  ctx.fillStyle = "rgba(128,128,128,0.93)";
   ctx.beginPath();
   if (typeof ctx.roundRect === "function") {
     ctx.roundRect(
       inset,
       inset,
-      canvas.width - inset * 2,
-      canvas.height - inset * 2,
-      Math.max(radius - inset, 4)
+      Math.max(1, w - inset * 2),
+      Math.max(1, h - inset * 2),
+      Math.max(radius - inset, 2)
     );
   } else {
-    ctx.rect(inset, inset, canvas.width - inset * 2, canvas.height - inset * 2);
+    ctx.rect(inset, inset, Math.max(1, w - inset * 2), Math.max(1, h - inset * 2));
   }
   ctx.fill();
   ctx.filter = "none";
-
   return canvas.toDataURL();
 }
 
-// Multi-pass SVG filter for chromatic rim aberration
-function buildFilter(id: string, scales: number[]) {
+function buildFilter(id: string, scales: [number, number, number]) {
   const filter = document.createElementNS(SVG_NS, "filter");
   filter.setAttribute("id", id);
   filter.setAttribute("x", "0");
@@ -118,7 +124,7 @@ function buildFilter(id: string, scales: number[]) {
   feImage.setAttribute("preserveAspectRatio", "none");
   filter.appendChild(feImage);
 
-  const keep = [
+  const keepMatrices = [
     "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0",
     "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0",
     "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0",
@@ -138,7 +144,7 @@ function buildFilter(id: string, scales: number[]) {
     const cm = document.createElementNS(SVG_NS, "feColorMatrix");
     cm.setAttribute("in", `d${i}`);
     cm.setAttribute("type", "matrix");
-    cm.setAttribute("values", keep[i]);
+    cm.setAttribute("values", keepMatrices[i]);
     cm.setAttribute("result", `c${i}`);
     filter.appendChild(cm);
     channels.push(`c${i}`);
@@ -161,45 +167,38 @@ function buildFilter(id: string, scales: number[]) {
   return { filter, feImage };
 }
 
-export interface LiquidGlassOptions {
-  scale?: number;
-  chroma?: number;
-  border?: number;
-  mapBlur?: number;
-  blur?: number;
-  saturate?: number;
-  radius?: number | null;
-  fallbackBlur?: number;
+function resolveRadius(el: HTMLElement, w: number, h: number, override?: number | null): number {
+  if (override != null) return override;
+  const raw = getComputedStyle(el).borderTopLeftRadius || "0px";
+  const v = parseFloat(raw) || 28;
+  return raw.trim().endsWith("%") ? (v / 100) * Math.min(w, h) : v;
 }
 
-export interface LiquidGlassInstance {
-  supported: boolean;
-  refresh: () => void;
-  destroy: () => void;
-}
+/**
+ * Apply optical liquid glass to any HTML element.
+ * Based on deepika-builds/liquid-glass specification.
+ */
+export function liquidGlass(el: HTMLElement, opts?: LiquidGlassOptions): LiquidGlassInstance {
+  const o = Object.assign(
+    {
+      scale: -90,
+      chroma: 5,
+      border: 0.06,
+      mapBlur: 10,
+      blur: 3,
+      saturate: 1.6,
+      radius: null,
+      fallbackBlur: 18,
+    },
+    opts
+  );
 
-export function applyLiquidGlass(
-  el: HTMLElement,
-  options?: LiquidGlassOptions
-): LiquidGlassInstance {
-  const opts = {
-    scale: -80,
-    chroma: 4,
-    border: 0.06,
-    mapBlur: 10,
-    blur: 4,
-    saturate: 1.4,
-    radius: null,
-    fallbackBlur: 16,
-    ...options,
-  };
-
-  const supported = isRefractionSupported();
+  const supported = isChromiumSupported();
 
   if (!supported) {
-    const fallbackStyle = `blur(${opts.fallbackBlur}px) saturate(${opts.saturate})`;
-    el.style.backdropFilter = fallbackStyle;
-    (el.style as any).webkitBackdropFilter = fallbackStyle;
+    const frosted = `blur(${o.fallbackBlur}px) saturate(${o.saturate})`;
+    el.style.backdropFilter = frosted;
+    (el.style as any).webkitBackdropFilter = frosted;
     el.classList.add("lg-fallback");
     return {
       supported: false,
@@ -213,23 +212,28 @@ export function applyLiquidGlass(
   }
 
   const id = `lg-filter-${++uid}`;
-  const scales = [opts.scale, opts.scale + opts.chroma, opts.scale + 2 * opts.chroma];
+  const scales: [number, number, number] = [
+    o.scale,
+    o.scale + o.chroma,
+    o.scale + 2 * o.chroma,
+  ];
   const parts = buildFilter(id, scales);
 
   function refresh() {
     const w = el.offsetWidth;
     const h = el.offsetHeight;
     if (!w || !h) return;
-    const radius =
-      opts.radius ??
-      (parseFloat(window.getComputedStyle(el).borderTopLeftRadius || "16") || 16);
-    parts.feImage.setAttribute("href", makeMap(w, h, radius, opts.border, opts.mapBlur));
-    parts.feImage.setAttribute("width", String(w));
-    parts.feImage.setAttribute("height", String(h));
+    const radius = resolveRadius(el, w, h, o.radius);
+    const mapUri = makeMap(w, h, radius, o.border, o.mapBlur);
+    if (mapUri) {
+      parts.feImage.setAttribute("href", mapUri);
+      parts.feImage.setAttribute("width", String(w));
+      parts.feImage.setAttribute("height", String(h));
+    }
   }
 
   refresh();
-  el.style.backdropFilter = `url(#${id}) blur(${opts.blur}px) saturate(${opts.saturate})`;
+  el.style.backdropFilter = `url(#${id}) blur(${o.blur}px) saturate(${o.saturate})`;
 
   let timer: NodeJS.Timeout | null = null;
   const ro = new ResizeObserver(() => {
@@ -250,17 +254,42 @@ export function applyLiquidGlass(
   };
 }
 
-// React Hook to attach liquid glass to any container ref
-export function useLiquidGlass<T extends HTMLElement>(
-  options?: LiquidGlassOptions
-) {
+/**
+ * React hook to attach Apple-style liquid glass optics and specular pointer glare.
+ */
+export function useLiquidGlass<T extends HTMLElement = HTMLDivElement>(
+  opts?: LiquidGlassOptions,
+  enableGlare: boolean = true
+): RefObject<T> {
   const ref = useRef<T>(null);
 
   useEffect(() => {
-    if (!ref.current) return;
-    const instance = applyLiquidGlass(ref.current, options);
-    return () => instance.destroy();
-  }, [options]);
+    const el = ref.current;
+    if (!el) return;
+
+    const instance = liquidGlass(el, opts);
+
+    let handlePointerMove: ((e: PointerEvent) => void) | null = null;
+    if (enableGlare) {
+      handlePointerMove = (e: PointerEvent) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          const gx = ((e.clientX - rect.left) / rect.width) * 100;
+          const gy = ((e.clientY - rect.top) / rect.height) * 100;
+          el.style.setProperty("--gx", `${gx.toFixed(1)}%`);
+          el.style.setProperty("--gy", `${gy.toFixed(1)}%`);
+        }
+      };
+      el.addEventListener("pointermove", handlePointerMove);
+    }
+
+    return () => {
+      instance.destroy();
+      if (handlePointerMove) {
+        el.removeEventListener("pointermove", handlePointerMove);
+      }
+    };
+  }, [opts, enableGlare]);
 
   return ref;
 }
