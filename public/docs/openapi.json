@@ -1,0 +1,247 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MangaCMS Self-Hosted REST API",
+    "version": "1.0.0",
+    "description": "Production-grade, fully owned REST API for the Self-Hosted Manga Reader CMS. Operates with zero third-party manga API or external scraping dependencies. The internal relational database is the single source of truth."
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "API v1 Endpoint"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "manga_session_token"
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "required": ["success", "data", "meta"],
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "object" },
+          "meta": { "type": ["object", "null"], "example": null }
+        }
+      },
+      "PaginatedResponse": {
+        "type": "object",
+        "required": ["success", "data", "meta"],
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "array", "items": { "type": "object" } },
+          "meta": {
+            "type": "object",
+            "required": ["page", "limit", "total", "total_pages"],
+            "properties": {
+              "page": { "type": "integer", "example": 1 },
+              "limit": { "type": "integer", "example": 20 },
+              "total": { "type": "integer", "example": 100 },
+              "total_pages": { "type": "integer", "example": 5 }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["success", "error"],
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string", "example": "RESOURCE_NOT_FOUND" },
+              "message": { "type": "string", "example": "Requested resource was not found" }
+            }
+          }
+        }
+      },
+      "Manga": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "alternativeTitles": { "type": "array", "items": { "type": "string" } },
+          "description": { "type": "string" },
+          "coverImageId": { "type": ["string", "null"] },
+          "coverUrl": { "type": ["string", "null"] },
+          "publicationStatus": { "type": "string", "enum": ["DRAFT", "PENDING_REVIEW", "SCHEDULED", "PUBLISHED", "ARCHIVED"] },
+          "contentRating": { "type": "string", "enum": ["SAFE", "SUGGESTIVE", "MATURE", "EXPLICIT"] },
+          "originalLanguage": { "type": "string" },
+          "releaseYear": { "type": ["integer", "null"] }
+        }
+      },
+      "Chapter": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "mangaId": { "type": "string" },
+          "chapterNumber": { "type": "number", "example": 10.5 },
+          "volumeNumber": { "type": ["integer", "null"], "example": 2 },
+          "title": { "type": ["string", "null"] },
+          "slug": { "type": "string" },
+          "language": { "type": "string", "example": "en" },
+          "publicationStatus": { "type": "string" },
+          "publishedAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "ReaderManifest": {
+        "type": "object",
+        "properties": {
+          "manga": { "type": "object" },
+          "chapter": { "type": "object" },
+          "navigation": {
+            "type": "object",
+            "properties": {
+              "previous": { "type": ["object", "null"] },
+              "next": { "type": ["object", "null"] }
+            }
+          },
+          "readingDirection": { "type": "string", "example": "VERTICAL" },
+          "availableLanguages": { "type": "array", "items": { "type": "string" } },
+          "totalPages": { "type": "integer" },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "pageNumber": { "type": "integer" },
+                "url": { "type": "string" },
+                "width": { "type": ["integer", "null"] },
+                "height": { "type": ["integer", "null"] },
+                "fileSize": { "type": ["integer", "null"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/manga": {
+      "get": {
+        "summary": "List published manga with search, filtering and pagination",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "query", "in": "query", "schema": { "type": "string" } },
+          { "name": "genre", "in": "query", "schema": { "type": "string" } },
+          { "name": "tag", "in": "query", "schema": { "type": "string" } },
+          { "name": "author", "in": "query", "schema": { "type": "string" } },
+          { "name": "contentRating", "in": "query", "schema": { "type": "string" } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "enum": ["latest", "popular", "rating", "title"] } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of manga", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PaginatedResponse" } } } }
+        }
+      }
+    },
+    "/manga/{slug}": {
+      "get": {
+        "summary": "Retrieve manga details by slug",
+        "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Manga details", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/manga/{slug}/chapters": {
+      "get": {
+        "summary": "List published chapters for manga",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "language", "in": "query", "schema": { "type": "string" } },
+          { "name": "sortOrder", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"], "default": "asc" } }
+        ],
+        "responses": {
+          "200": { "description": "Chapter list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/chapters/{chapterId}/navigation": {
+      "get": {
+        "summary": "Get traversal navigation for chapter",
+        "parameters": [{ "name": "chapterId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Navigation links and language list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/reader/{mangaSlug}/{chapterId}": {
+      "get": {
+        "summary": "Retrieve complete reading manifest with ordered pages",
+        "parameters": [
+          { "name": "mangaSlug", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "chapterId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Reader manifest", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReaderManifest" } } } }
+        }
+      }
+    },
+    "/admin/manga": {
+      "post": {
+        "summary": "Create new manga series",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "slug": { "type": "string" },
+                  "description": { "type": "string" },
+                  "publicationStatus": { "type": "string" },
+                  "contentRating": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Manga created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/admin/media/upload": {
+      "post": {
+        "summary": "Upload media images or complete chapter ZIP archive",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "chapterId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Upload report", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    }
+  }
+}

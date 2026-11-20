@@ -1,0 +1,945 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  TRANSLATOR
+  USER
+  GUEST
+  MODERATOR
+}
+
+enum ContentRating {
+  SAFE
+  SUGGESTIVE
+  MATURE
+  EXPLICIT
+}
+
+enum TranslationStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  PUBLISHED
+}
+
+enum ContributionRole {
+  STORY
+  ART
+  STORY_AND_ART
+  TRANSLATOR
+  LETTERER
+  EDITOR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  username     String      @unique
+  passwordHash String
+  avatarUrl    String?
+  role         Role        @default(USER)
+  status       UserStatus  @default(ACTIVE)
+  bio          String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  sessions         Session[]
+  preference       ReaderPreference?
+  libraries        UserLibrary[]
+  readingHistories ReadingHistory[]
+  readingLists     ReadingList[]
+  ratings          UserRating[]
+  reports          ContentReport[]
+  auditLogs        AuditLog[]
+  readingProgress  ReadingProgress[]
+  bookmarks        Bookmark[]
+  createdManga     Manga[]           @relation("MangaCreatedBy")
+  createdChapters  Chapter[]         @relation("ChapterCreatedBy")
+
+  @@index([role])
+  @@index([status])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+enum ReadingMode {
+  VERTICAL_SCROLL
+  SINGLE_PAGE
+  DOUBLE_PAGE
+  WEBTOON
+}
+
+enum ReadingDirection {
+  LTR
+  RTL
+  VERTICAL
+}
+
+enum ImageScaling {
+  FIT_WIDTH
+  FIT_HEIGHT
+  ORIGINAL
+}
+
+enum ReaderBg {
+  DARK
+  BLACK
+  GRAY
+  LIGHT
+}
+
+model ReaderPreference {
+  id                String           @id @default(cuid())
+  userId            String           @unique
+  readingMode       ReadingMode      @default(VERTICAL_SCROLL)
+  readingDirection  ReadingDirection @default(LTR)
+  imageScaling      ImageScaling     @default(FIT_WIDTH)
+  backgroundColor   ReaderBg         @default(DARK)
+  pageGap           Int              @default(12)
+  preloadCount      Int              @default(2)
+  showPageNumbers   Boolean          @default(true)
+  keyboardShortcuts Json?
+  updatedAt         DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum PublicationStatus {
+  DRAFT
+  INGESTING
+  READY_TO_PUBLISH
+  PENDING_REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum IngestStatus {
+  PENDING
+  INGESTING
+  COMPLETED
+  FAILED
+}
+
+enum BatchStatus {
+  UPLOADED
+  SCANNING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  PARTIAL_FAILED
+  FAILED
+  CANCELLED
+}
+
+enum BatchJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+  CANCELLED
+}
+
+enum MangaStatus {
+  ONGOING
+  COMPLETED
+  HIATUS
+  CANCELLED
+}
+
+enum ContentType {
+  MANGA
+  MANHWA
+  MANHUA
+  COMIC
+  WEBTOON
+}
+
+model Manga {
+  id                String            @id @default(cuid())
+  slug              String            @unique
+  title             String
+  alternativeTitles Json?             // Array of strings or { lang: string, title: string }
+  description       String?           @db.Text
+  coverImageId      String?
+  coverUrl          String?
+  bannerUrl         String?
+  author            String?
+  artist            String?
+  releaseYear       Int?
+  status            MangaStatus       @default(ONGOING)
+  contentType       ContentType       @default(MANGA)
+  contentRating     ContentRating     @default(SAFE)
+  rating            Float             @default(0)
+  ratingCount       Int               @default(0)
+  viewCount         Int               @default(0)
+  language          String            @default("en")
+  originalLanguage  String            @default("ja")
+  publicationStatus PublicationStatus @default(PUBLISHED)
+  scheduledAt       DateTime?
+  isFeatured        Boolean           @default(false)
+  isTrending        Boolean           @default(false)
+  createdById       String?
+  deletedAt         DateTime?
+  
+  // External Provider Association (legacy/optional)
+  providerId        String?
+  externalId        String?
+  externalUrl       String?
+  rawMetadata       Json?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  coverImage        Media?            @relation("MangaCoverMedia", fields: [coverImageId], references: [id], onDelete: SetNull)
+  createdBy         User?             @relation("MangaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  authors           MangaAuthor[]
+  genres            MangaGenre[]
+  tags              MangaTag[]
+  chapters          Chapter[]
+  translations      Translation[]
+  readingProgress   ReadingProgress[]
+  bookmarks         Bookmark[]
+  userLibraries     UserLibrary[]
+  readingHistories  ReadingHistory[]
+  readingListItems  ReadingListItem[]
+  userRatings       UserRating[]
+  reports           ContentReport[]
+  importRecords     APIImportRecord[]
+  comicJobs         ImportComicJob[]
+  chapterJobs       ImportChapterJob[]
+
+  provider          APIProvider?      @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@unique([providerId, externalId])
+  @@index([slug])
+  @@index([title])
+  @@index([status])
+  @@index([contentType])
+  @@index([contentRating])
+  @@index([publicationStatus])
+  @@index([isFeatured])
+  @@index([isTrending])
+  @@index([rating])
+  @@index([viewCount])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model Author {
+  id          String        @id @default(cuid())
+  name        String
+  biography   String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  mangas      MangaAuthor[]
+
+  @@index([name])
+}
+
+model MangaAuthor {
+  id               String           @id @default(cuid())
+  mangaId          String
+  authorId         String
+  contributionRole ContributionRole @default(STORY_AND_ART)
+
+  manga            Manga            @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  author           Author           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([mangaId, authorId, contributionRole])
+  @@index([mangaId])
+  @@index([authorId])
+}
+
+model Genre {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  slug        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+
+  mangas      MangaGenre[]
+
+  @@index([slug])
+}
+
+model MangaGenre {
+  mangaId String
+  genreId String
+
+  manga Manga @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([mangaId, genreId])
+  @@index([genreId])
+  @@index([mangaId])
+}
+
+model Tag {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+
+  mangas      MangaTag[]
+
+  @@index([slug])
+}
+
+model MangaTag {
+  mangaId String
+  tagId   String
+
+  manga Manga @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([mangaId, tagId])
+  @@index([tagId])
+  @@index([mangaId])
+}
+
+model Chapter {
+  id                String            @id @default(cuid())
+  mangaId           String
+  chapterNumber     Float             // Float allows 1.5, 10.1, etc.
+  volumeNumber      Int?
+  volume            Int?              // Alias for volumeNumber
+  title             String?
+  chapterTitle      String?           // Alias for title
+  slug              String?
+  language          String            @default("en")
+  scanlationGroup   String?
+  releaseDate       DateTime?
+  publishedAt       DateTime?
+  publicationStatus PublicationStatus @default(PUBLISHED)
+  viewCount         Int               @default(0)
+  createdById       String?
+  
+  // External Provider association (legacy/deprecated)
+  externalId        String?
+  externalUrl       String?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  manga             Manga             @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  createdBy         User?             @relation("ChapterCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  pages             ChapterPage[]
+  translations      ChapterTranslation[]
+  readingProgress   ReadingProgress[]
+  readingHistories  ReadingHistory[]
+  reports           ContentReport[]
+  importRecords     APIImportRecord[]
+  chapterKey        String?           // Canonical key, e.g. "0", "12.2", "12.10", "extra-1"
+  sortKey           String?           // Zero-padded decimal, e.g. "000012.0002"
+  ingestStatus      IngestStatus      @default(COMPLETED)
+
+  @@unique([mangaId, chapterNumber, language])
+  @@index([mangaId])
+  @@index([chapterNumber])
+  @@index([mangaId, sortKey])
+  @@index([mangaId, chapterKey])
+  @@index([ingestStatus])
+  @@index([publicationStatus])
+  @@index([publishedAt])
+  @@index([releaseDate])
+  @@index([createdAt])
+}
+
+model ChapterPage {
+  id                String      @id @default(cuid())
+  chapterId         String
+  pageNumber        Int
+  imageId           String?
+  imageUrl          String
+  storageKey        String?
+  width             Int?
+  height            Int?
+  fileSize          Int?
+  sourceSha256      String?     // Raw input image hash before encoding
+  compressionPreset String?     // e.g. "auto", "near_lossless", "web_balanced", "true_lossless", "passthrough"
+  createdAt         DateTime    @default(now())
+
+  chapter      Chapter     @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  image        Media?      @relation(fields: [imageId], references: [id], onDelete: SetNull)
+
+  @@unique([chapterId, pageNumber])
+  @@index([chapterId])
+  @@index([pageNumber])
+  @@index([sourceSha256])
+}
+
+model Media {
+  id                String        @id @default(cuid())
+  storageKey        String        @unique
+  originalFilename  String
+  mimeType          String
+  fileSize          Int
+  width             Int?
+  height            Int?
+  checksum          String?       // SHA-256 for deduplication
+  sourceSha256      String?       // Raw input image hash before encoding
+  compressionPreset String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  coverForManga    Manga[]       @relation("MangaCoverMedia")
+  pages            ChapterPage[]
+
+  @@index([checksum])
+  @@index([sourceSha256])
+  @@index([storageKey])
+}
+
+model Translation {
+  id           String            @id @default(cuid())
+  mangaId      String
+  languageCode String
+  title        String
+  description  String?           @db.Text
+  status       TranslationStatus @default(DRAFT)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  manga        Manga             @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+
+  @@unique([mangaId, languageCode])
+  @@index([mangaId])
+  @@index([status])
+}
+
+model ChapterTranslation {
+  id                String            @id @default(cuid())
+  chapterId         String
+  languageCode      String
+  translatedTitle   String
+  translationStatus TranslationStatus @default(DRAFT)
+  publishedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  chapter           Chapter           @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([chapterId, languageCode])
+  @@index([chapterId])
+  @@index([translationStatus])
+}
+
+model ReadingProgress {
+  id         String   @id @default(cuid())
+  userId     String
+  mangaId    String
+  chapterId  String
+  pageNumber Int      @default(1)
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manga      Manga    @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  chapter    Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mangaId, chapterId])
+  @@index([userId])
+  @@index([mangaId])
+  @@index([chapterId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  mangaId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manga     Manga    @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mangaId])
+  @@index([userId])
+  @@index([mangaId])
+}
+
+enum LibraryStatus {
+  READING
+  COMPLETED
+  ON_HOLD
+  PLAN_TO_READ
+  DROPPED
+}
+
+model UserLibrary {
+  id         String        @id @default(cuid())
+  userId     String
+  mangaId    String
+  status     LibraryStatus @default(PLAN_TO_READ)
+  score      Float?
+  isFavorite Boolean       @default(false)
+  notes      String?       @db.Text
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manga Manga @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mangaId])
+  @@index([userId])
+  @@index([status])
+  @@index([isFavorite])
+}
+
+model ReadingHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  mangaId     String
+  chapterId   String
+  pageNumber  Int      @default(1)
+  percentRead Float    @default(0)
+  isCompleted Boolean  @default(false)
+  lastReadAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manga   Manga   @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mangaId])
+  @@index([userId])
+  @@index([lastReadAt])
+}
+
+model ReadingList {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  slug        String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ReadingListItem[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([isPublic])
+}
+
+model ReadingListItem {
+  id            String      @id @default(cuid())
+  readingListId String
+  mangaId       String
+  sortOrder     Int         @default(0)
+  addedAt       DateTime    @default(now())
+
+  readingList ReadingList @relation(fields: [readingListId], references: [id], onDelete: Cascade)
+  manga       Manga       @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+
+  @@unique([readingListId, mangaId])
+  @@index([readingListId])
+}
+
+model UserRating {
+  id        String   @id @default(cuid())
+  userId    String
+  mangaId   String
+  score     Float    // 1-10
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manga Manga @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mangaId])
+  @@index([mangaId])
+  @@index([score])
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+model ContentReport {
+  id              String       @id @default(cuid())
+  reporterId      String?
+  mangaId         String?
+  chapterId       String?
+  reason          String
+  description     String?      @db.Text
+  status          ReportStatus @default(PENDING)
+  moderatorNotes  String?      @db.Text
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  reporter User?    @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  manga    Manga?   @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  chapter  Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  actorId       String?
+  action        String   // e.g. MANGA_CREATED, CHAPTER_PUBLISHED
+  entityType    String   // e.g. Manga, Chapter, Media
+  entityId      String?
+  changes       Json?
+  details       Json?
+  ipAddress     String?
+  userAgent     String?
+  correlationId String?
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+enum StorageProvider {
+  LOCAL
+  S3
+  EXTERNAL
+}
+
+model MediaAsset {
+  id              String          @id @default(cuid())
+  filename        String
+  originalName    String
+  mimeType        String
+  size            Int
+  width           Int?
+  height          Int?
+  storageProvider StorageProvider @default(LOCAL)
+  url             String
+  storageKey      String?
+  hash            String?
+  isOrphan        Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([storageProvider])
+  @@index([isOrphan])
+  @@index([createdAt])
+}
+
+model SiteSetting {
+  key         String   @id
+  value       String   @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+enum APIAuthType {
+  NONE
+  API_KEY_HEADER
+  API_KEY_QUERY
+  BEARER_TOKEN
+  BASIC
+  CUSTOM_HEADERS
+}
+
+enum ProviderHealth {
+  HEALTHY
+  DEGRADED
+  FAILING
+  UNKNOWN
+}
+
+model APIProvider {
+  id                   String         @id @default(cuid())
+  name                 String
+  slug                 String         @unique
+  description          String?
+  baseUrl              String
+  apiVersion           String?
+  defaultLanguage      String         @default("en")
+  authType             APIAuthType    @default(NONE)
+  encryptedCredentials String?        @db.Text
+  customHeaders        Json?
+  timeoutMs            Int            @default(10000)
+  rateLimitRequests    Int            @default(60)
+  rateLimitWindowSec   Int            @default(60)
+  isEnabled            Boolean        @default(true)
+  healthStatus         ProviderHealth @default(UNKNOWN)
+  lastCheckedAt        DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  endpoints            APIEndpoint[]
+  fieldMappings        APIFieldMapping[]
+  importJobs           APIImportJob[]
+  requestLogs          APIRequestLog[]
+  mangas               Manga[]
+
+  @@index([slug])
+  @@index([isEnabled])
+  @@index([healthStatus])
+}
+
+enum HttpMethod {
+  GET
+  POST
+}
+
+enum PaginationType {
+  PAGE
+  OFFSET
+  CURSOR
+  LINK
+  LIMIT
+}
+
+model APIEndpoint {
+  id               String         @id @default(cuid())
+  providerId       String
+  name             String         // search, manga_detail, chapters, chapter_pages, popular, latest
+  method           HttpMethod     @default(GET)
+  urlTemplate      String         // e.g. /manga, /manga/{id}, /chapter/{id}
+  queryParams      Json?          // Key-value pairs or defaults
+  defaultHeaders   Json?
+  paginationType   PaginationType @default(PAGE)
+  paginationConfig Json?          // e.g. { pageParam: "page", limitParam: "limit", totalPagesPath: "pagination.total" }
+  cacheTtlSec      Int            @default(300)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  provider APIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, name])
+  @@index([providerId])
+}
+
+enum MappingEntityType {
+  MANGA
+  CHAPTER
+  PAGE
+}
+
+model APIFieldMapping {
+  id         String            @id @default(cuid())
+  providerId String
+  entityType MappingEntityType
+  mappings   Json              // Object mapping internal fields to JSONPath / transforms
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  provider APIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, entityType])
+  @@index([providerId])
+}
+
+enum ImportJobType {
+  SINGLE_MANGA
+  BULK_MANGA
+  CHAPTERS
+  FULL_SYNC
+}
+
+enum ImportJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+model APIImportJob {
+  id              String          @id @default(cuid())
+  providerId      String
+  jobType         ImportJobType
+  status          ImportJobStatus @default(PENDING)
+  totalItems      Int             @default(0)
+  processedItems  Int             @default(0)
+  failedItems     Int             @default(0)
+  log             String?         @db.Text
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime        @default(now())
+
+  provider APIProvider       @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  records  APIImportRecord[]
+
+  @@index([providerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ImportRecordStatus {
+  SUCCESS
+  SKIPPED_DUPLICATE
+  FAILED
+}
+
+model APIImportRecord {
+  id                String             @id @default(cuid())
+  jobId             String
+  externalId        String
+  internalMangaId   String?
+  internalChapterId String?
+  status            ImportRecordStatus
+  errorMessage      String?
+  rawPayload        Json?
+  createdAt         DateTime           @default(now())
+
+  job     APIImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  manga   Manga?       @relation(fields: [internalMangaId], references: [id], onDelete: SetNull)
+  chapter Chapter?     @relation(fields: [internalChapterId], references: [id], onDelete: SetNull)
+
+  @@index([jobId])
+  @@index([status])
+  @@index([externalId])
+}
+
+model APIRequestLog {
+  id              String       @id @default(cuid())
+  providerId      String?
+  endpointUrl     String
+  method          HttpMethod   @default(GET)
+  statusCode      Int
+  durationMs      Int
+  requestHeaders  Json?
+  responseSnippet String?      @db.Text
+  error           String?      @db.Text
+  createdAt       DateTime     @default(now())
+
+  provider APIProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([providerId])
+  @@index([statusCode])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Production Bulk Comic Ingestion Models (Postgres Job Queue)
+// ---------------------------------------------------------------------------
+
+model ImportBatch {
+  id                 String             @id @default(cuid())
+  batchId            String             @unique
+  status             BatchStatus        @default(UPLOADED)
+  sourceMode         String             // "archive" | "local_dir" | "storage_prefix"
+  sourceRef          String?            // File path, directory path, or storage prefix
+  compressionPreset  String             @default("auto")
+  conflictPolicy     String             @default("skip_existing") // "skip_existing" | "upsert_metadata" | "replace_pages"
+  autoPublish        Boolean            @default(true)
+  totalComics        Int                @default(0)
+  totalChapters      Int                @default(0)
+  completedChapters  Int                @default(0)
+  failedChapters     Int                @default(0)
+  totalPages         Int                @default(0)
+  processedPages     Int                @default(0)
+  totalInputBytes    BigInt             @default(0)
+  totalOutputBytes   BigInt             @default(0)
+  errorSummary       String?            @db.Text
+  createdById        String?
+  finishedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  comicJobs          ImportComicJob[]
+  chapterJobs        ImportChapterJob[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ImportComicJob {
+  id                 String             @id @default(cuid())
+  batchId            String
+  mangaId            String?
+  slug               String
+  manifestJson       Json?
+  status             BatchJobStatus     @default(PENDING)
+  errorMessage       String?            @db.Text
+  totalChapters      Int                @default(0)
+  completedChapters  Int                @default(0)
+  failedChapters     Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  batch              ImportBatch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  manga              Manga?             @relation(fields: [mangaId], references: [id], onDelete: SetNull)
+  chapterJobs        ImportChapterJob[]
+
+  @@index([batchId, status])
+  @@index([slug])
+}
+
+model ImportChapterJob {
+  id                 String             @id @default(cuid())
+  batchId            String
+  comicJobId         String
+  mangaId            String
+  chapterKey         String
+  displayNumber      String
+  sortKey            String
+  volume             Int?
+  title              String?
+  sourcePath         String
+  sourceType         String             // "directory" | "cbz" | "zip"
+  explicitPagesJson  Json?
+  idempotencyKey     String             @unique // "${batchId}:${slug}:${chapterKey}:v1"
+  status             BatchJobStatus     @default(PENDING)
+  attempts           Int                @default(0)
+  maxAttempts        Int                @default(3)
+  lockedAt           DateTime?
+  workerId           String?
+  errorMessage       String?            @db.Text
+  pagesIngested      Int                @default(0)
+  slicesCreated      Int                @default(0)
+  inputBytes         BigInt             @default(0)
+  outputBytes        BigInt             @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  batch              ImportBatch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  comicJob           ImportComicJob     @relation(fields: [comicJobId], references: [id], onDelete: Cascade)
+  manga              Manga              @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+
+  @@index([status, lockedAt])
+  @@index([batchId, status])
+  @@index([mangaId])
+  @@index([idempotencyKey])
+}
