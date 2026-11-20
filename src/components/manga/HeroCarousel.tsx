@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { BookOpen, Star, ChevronLeft, ChevronRight, Info, Sparkles } from "lucide-react";
+import { BookOpen, Star, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getSafeImageUrl, getProxyFallbackUrl } from "@/lib/image-utils";
 
@@ -87,17 +87,18 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
           {/* Details */}
           <div className="flex-1 flex flex-col justify-center space-y-3.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider px-3.5 py-1 rounded-full liquid-glass-pill text-sky-300 border-sky-400/40 shadow-sm flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3 text-sky-400" />
-                Featured Title
-              </span>
               {current.contentType && (
-                <span className="text-xs font-semibold uppercase px-3 py-1 rounded-full liquid-glass-pill text-slate-200">
+                <span className="text-xs font-bold uppercase tracking-wider px-3 py-0.5 rounded-md bg-white/[0.08] text-sky-300 border border-white/15">
                   {current.contentType}
                 </span>
               )}
+              {current.chapters && current.chapters.length > 0 && (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-white/[0.06] text-slate-300 border border-white/10 font-mono">
+                  Latest: Ch. {current.chapters[0].chapterNumber}
+                </span>
+              )}
               {current.rating && current.rating > 0 ? (
-                <div className="flex items-center gap-1 rounded-full liquid-glass-pill px-3 py-1 text-xs font-bold text-amber-400">
+                <div className="flex items-center gap-1 rounded-md bg-black/60 px-2.5 py-0.5 text-xs font-bold text-amber-400 border border-white/10">
                   <Star className="h-3.5 w-3.5 fill-amber-400" />
                   <span>{current.rating.toFixed(1)}</span>
                 </div>
@@ -110,10 +111,10 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
 
             {current.genres && current.genres.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {current.genres.map((g) => (
+                {current.genres.slice(0, 4).map((g) => (
                   <span
                     key={g.genre.slug}
-                    className="text-xs font-semibold text-slate-300 liquid-glass-pill px-3 py-1"
+                    className="text-xs font-medium text-slate-300 bg-white/[0.05] border border-white/10 px-2.5 py-0.5 rounded-md"
                   >
                     {g.genre.name}
                   </span>
@@ -126,16 +127,25 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
             </p>
 
             <div className="flex items-center gap-3 pt-2">
-              <Link href={`/manga/${current.slug}`}>
-                <Button className="font-bold gap-2 px-6">
-                  <BookOpen className="h-4 w-4" />
-                  Read Now
-                </Button>
-              </Link>
+              {current.chapters && current.chapters.length > 0 ? (
+                <Link href={`/read/${current.chapters[0].id}`}>
+                  <Button className="font-bold gap-2 px-6">
+                    <BookOpen className="h-4 w-4" />
+                    Read Chapter {current.chapters[0].chapterNumber}
+                  </Button>
+                </Link>
+              ) : (
+                <Link href={`/manga/${current.slug}`}>
+                  <Button className="font-bold gap-2 px-6">
+                    <BookOpen className="h-4 w-4" />
+                    Start Reading
+                  </Button>
+                </Link>
+              )}
               <Link href={`/manga/${current.slug}`}>
                 <Button variant="secondary" className="gap-2 font-semibold">
                   <Info className="h-4 w-4" />
-                  Details
+                  Series Details
                 </Button>
               </Link>
             </div>
