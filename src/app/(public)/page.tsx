@@ -98,30 +98,32 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* 4. Taxonomy & Genre Discovery Strip */}
+      {/* 4. Compact Genre Discovery Strip */}
       {genres.length > 0 && (
-        <section className="rounded-[28px] liquid-glass liquid-glass-glare p-6 sm:p-8 space-y-4 shadow-2xl">
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
-              Browse by Genre
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Filter titles across themes and storytelling styles
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2.5 pt-1">
-            {genres.map((g) => (
-              <Link
-                key={g.slug}
-                href={`/browse?genre=${g.slug}`}
-                className="flex items-center gap-2 rounded-full liquid-glass-chip px-4 py-2 text-xs font-semibold text-slate-200 hover:text-white transition-all"
-              >
-                <span>{g.name}</span>
-                <span className="text-[11px] font-mono text-slate-400 font-normal">
-                  {g._count.mangas}
-                </span>
-              </Link>
-            ))}
+        <section className="rounded-2xl liquid-glass liquid-glass-glare p-3 sm:p-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="shrink-0 flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                Genres
+              </span>
+              <span className="text-[11px] text-muted-foreground hidden md:inline">
+                Quick filter by storytelling style
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              {genres.map((g) => (
+                <Link
+                  key={g.slug}
+                  href={`/browse?genre=${g.slug}`}
+                  className="shrink-0 flex items-center gap-1.5 rounded-full liquid-glass-chip px-3 py-1 text-xs font-medium text-slate-200 hover:text-white transition-all"
+                >
+                  <span>{g.name}</span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {g._count.mangas}
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       )}
