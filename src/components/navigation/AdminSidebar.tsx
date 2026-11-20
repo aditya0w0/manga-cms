@@ -95,9 +95,9 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
     <div className="flex flex-col justify-between h-full">
       <div>
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800">
+        <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-sky-400 font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 border border-white/25 text-white font-bold shadow-md shadow-sky-500/20">
               <Shield className="h-4 w-4" />
             </div>
             <div>
@@ -110,7 +110,7 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
           {onClose && (
             <button
               onClick={onClose}
-              className="md:hidden p-2 rounded-lg text-slate-400 hover:text-foreground hover:bg-slate-800 transition-colors"
+              className="md:hidden p-2 rounded-lg text-slate-400 hover:text-foreground hover:bg-white/[0.08] transition-colors"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -121,8 +121,8 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
         {/* Grouped Navigation */}
         <nav className="p-3 space-y-4 overflow-y-auto max-h-[calc(100vh-8.5rem)]">
           {navigationSections.map((sec) => (
-            <div key={sec.title} className="space-y-0.5">
-              <span className="px-3 text-xs font-medium text-slate-500 block pb-1">
+            <div key={sec.title} className="space-y-1">
+              <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 block pb-1">
                 {sec.title}
               </span>
 
@@ -138,15 +138,15 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
                     key={item.name}
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                       isActive
-                        ? "bg-slate-800 text-sky-300 font-semibold"
-                        : "text-slate-400 hover:text-foreground hover:bg-slate-900/60"
+                        ? "bg-sky-500/15 border border-sky-400/30 text-sky-300 font-semibold shadow-sm"
+                        : "text-slate-300 hover:text-foreground hover:bg-white/[0.06]"
                     }`}
                   >
                     <Icon
                       className={`h-4 w-4 transition-colors ${
-                        isActive ? "text-sky-400" : "text-slate-500"
+                        isActive ? "text-sky-400" : "text-slate-400"
                       }`}
                     />
                     <span>{item.name}</span>
@@ -159,12 +159,12 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
       </div>
 
       {/* Exit to Public Reader */}
-      <div className="p-3 border-t border-slate-800">
+      <div className="p-3 border-t border-white/10">
         <Link
           href="/"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-foreground hover:bg-slate-900 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-foreground hover:bg-white/[0.06] transition-colors"
         >
-          <ArrowLeft className="h-4 w-4 text-slate-500" />
+          <ArrowLeft className="h-4 w-4 text-slate-400" />
           <span>View Site</span>
         </Link>
       </div>
@@ -173,7 +173,7 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
 
   return (
     <>
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-slate-800 bg-slate-950 flex-col min-h-screen sticky top-0 h-screen shadow-xl">
+      <aside className="hidden md:flex w-64 shrink-0 border-r border-white/10 liquid-glass-obsidian flex-col min-h-screen sticky top-0 h-screen shadow-2xl">
         {sidebarContent}
       </aside>
 
@@ -189,7 +189,7 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
             className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
             onClick={onClose}
           />
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-slate-950 border-r border-slate-800 shadow-2xl z-50">
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] liquid-glass-obsidian border-r border-white/15 shadow-2xl z-50">
             {sidebarContent}
           </div>
         </div>

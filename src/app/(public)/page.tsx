@@ -50,7 +50,7 @@ export default async function HomePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
+              <div className="p-2.5 rounded-xl liquid-glass-pill text-orange-400">
                 <Flame className="h-5 w-5 fill-orange-400" />
               </div>
               <div>
@@ -81,7 +81,7 @@ export default async function HomePage() {
       {genres.length > 0 && (
         <section className="rounded-3xl liquid-glass p-6 sm:p-8 shadow-sm">
           <div className="flex items-center gap-2.5 mb-5">
-            <div className="p-1.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <div className="p-2 rounded-xl liquid-glass-pill text-cyan-400">
               <Compass className="h-4 w-4" />
             </div>
             <h4 className="text-sm font-bold tracking-wider uppercase text-foreground">
@@ -93,10 +93,10 @@ export default async function HomePage() {
               <Link
                 key={g.slug}
                 href={`/browse?genre=${g.slug}`}
-                className="group flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all duration-200"
+                className="group flex items-center gap-2 rounded-full liquid-glass-pill px-4 py-2 text-xs font-semibold text-slate-300 hover:text-cyan-300 transition-all duration-200"
               >
                 <span>{g.name}</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/[0.06] text-muted-foreground/80 group-hover:text-cyan-300 group-hover:bg-cyan-500/20 transition-colors">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-white/[0.08] text-slate-300 group-hover:text-cyan-300 group-hover:bg-cyan-500/20 transition-colors">
                   {g._count.mangas}
                 </span>
               </Link>
@@ -110,7 +110,7 @@ export default async function HomePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <div className="p-2.5 rounded-xl liquid-glass-pill text-emerald-400">
                 <Clock className="h-5 w-5" />
               </div>
               <div>
@@ -142,7 +142,7 @@ export default async function HomePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+              <div className="p-2.5 rounded-xl liquid-glass-pill text-sky-400">
                 <TrendingUp className="h-5 w-5" />
               </div>
               <div>

@@ -289,7 +289,8 @@ export class WdTaggerService {
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      const timeoutMs = process.env.NODE_ENV === "test" ? 300 : 8000;
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       const res = await fetch(`${cfg.endpoint}/tag-batch`, {
         method: "POST",

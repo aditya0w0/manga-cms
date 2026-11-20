@@ -332,9 +332,9 @@ export function BatchChapterUploadModal({
                   handleFilesSelected(e.dataTransfer.files);
                 }
               }}
-              className="border-2 border-dashed border-slate-700 hover:border-sky-500/50 rounded-xl p-8 text-center space-y-3 cursor-pointer bg-slate-900/40 transition-colors"
+              className="border-2 border-dashed border-white/20 hover:border-sky-400/50 rounded-2xl p-8 text-center space-y-3 cursor-pointer liquid-glass transition-colors"
             >
-              <FileArchive className="h-10 w-10 mx-auto text-sky-400 opacity-60" />
+              <FileArchive className="h-10 w-10 mx-auto text-sky-400 opacity-70" />
               <div>
                 <p className="font-semibold text-sm text-foreground">
                   Select Master Archive or Chapter Files
@@ -363,7 +363,7 @@ export function BatchChapterUploadModal({
             </div>
 
             {/* Optional schematic.json helper collapsible */}
-            <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+            <div className="rounded-xl border border-white/10 liquid-glass p-3">
               <button
                 type="button"
                 onClick={() => setShowSchematicHelp(!showSchematicHelp)}
@@ -402,7 +402,7 @@ export function BatchChapterUploadModal({
         {step === "preview" && (
           <div className="space-y-4">
             {/* Top Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl liquid-glass border border-white/10">
               <div className="flex items-center gap-2">
                 <Badge variant={hasSchematic ? "success" : "outline"} className="text-[10px]">
                   {hasSchematic ? "schematic.json matched" : "Auto-parsed from folders"}
@@ -418,7 +418,7 @@ export function BatchChapterUploadModal({
                   <select
                     value={conflictStrategy}
                     onChange={(e) => setConflictStrategy(e.target.value as "SKIP" | "OVERWRITE")}
-                    className="h-7 px-2 rounded border border-slate-700 bg-slate-900 text-xs text-foreground focus:outline-none"
+                    className="h-7 px-2 rounded-lg liquid-glass-input text-xs text-foreground focus:outline-none"
                   >
                     <option value="SKIP">Skip existing</option>
                     <option value="OVERWRITE">Overwrite pages</option>
@@ -430,7 +430,7 @@ export function BatchChapterUploadModal({
                   <select
                     value={compressionPreset}
                     onChange={(e) => setCompressionPreset(e.target.value as any)}
-                    className="h-7 px-2 rounded border border-slate-700 bg-slate-900 text-xs text-foreground focus:outline-none uppercase"
+                    className="h-7 px-2 rounded-lg liquid-glass-input text-xs text-foreground focus:outline-none uppercase"
                   >
                     <option value="auto">Auto (Lossless PNG / Quality WebP)</option>
                     <option value="lossless">Strict Lossless</option>
@@ -526,9 +526,9 @@ export function BatchChapterUploadModal({
             </div>
 
             {/* Desktop View: High-Density Table */}
-            <div className="hidden md:block rounded-lg border border-slate-800 overflow-hidden max-h-[45vh] overflow-y-auto">
+            <div className="hidden md:block rounded-xl border border-white/10 overflow-hidden max-h-[45vh] overflow-y-auto liquid-glass">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 sticky top-0 border-b border-slate-800 z-10 font-medium">
+                <thead className="bg-black/60 backdrop-blur-xl text-slate-300 sticky top-0 border-b border-white/10 z-10 font-medium">
                   <tr>
                     <th className="py-2.5 px-3">Source</th>
                     <th className="py-2.5 px-3 w-20">Ch #</th>
@@ -538,12 +538,12 @@ export function BatchChapterUploadModal({
                     <th className="py-2.5 px-3 text-right w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80 bg-slate-900/60 font-sans">
+                <tbody className="divide-y divide-white/5 bg-transparent font-sans">
                   {chapters.map((ch, idx) => {
                     const isDup = ch.warnings.some((w) => w.includes("Duplicate"));
 
                     return (
-                      <tr key={idx} className={`hover:bg-slate-800/40 ${isDup ? "bg-rose-500/10" : ""}`}>
+                      <tr key={idx} className={`hover:bg-white/[0.04] transition-colors ${isDup ? "bg-rose-500/10" : ""}`}>
                         <td className="py-2 px-3 font-mono text-[11px] text-slate-300 truncate max-w-[140px]" title={ch.sourceKey}>
                           {ch.sourceKey}
                         </td>
@@ -553,7 +553,7 @@ export function BatchChapterUploadModal({
                             step="0.1"
                             value={ch.chapterNumber}
                             onChange={(e) => updateChapterField(idx, "chapterNumber", parseFloat(e.target.value) || 0)}
-                            className="h-7 text-xs font-mono text-sky-300 bg-slate-950 border-slate-700 w-16"
+                            className="h-7 text-xs font-mono text-sky-300 bg-slate-950/80 border-slate-700 w-16"
                           />
                         </td>
                         <td className="py-1.5 px-3">
@@ -562,7 +562,7 @@ export function BatchChapterUploadModal({
                             value={ch.volume ?? ""}
                             onChange={(e) => updateChapterField(idx, "volume", e.target.value ? parseInt(e.target.value, 10) : undefined)}
                             placeholder="-"
-                            className="h-7 text-xs font-mono bg-slate-950 border-slate-700 w-14"
+                            className="h-7 text-xs font-mono bg-slate-950/80 border-slate-700 w-14"
                           />
                         </td>
                         <td className="py-1.5 px-3">
@@ -571,11 +571,11 @@ export function BatchChapterUploadModal({
                             value={ch.title || ""}
                             onChange={(e) => updateChapterField(idx, "title", e.target.value)}
                             placeholder="Optional title"
-                            className="h-7 text-xs bg-slate-950 border-slate-700"
+                            className="h-7 text-xs bg-slate-950/80 border-slate-700"
                           />
                         </td>
                         <td className="py-2 px-3 text-center">
-                          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                          <span className="font-mono text-[10px] px-2 py-0.5 rounded-full liquid-glass-pill text-slate-300">
                             {ch.fileCount}
                           </span>
                         </td>
@@ -583,7 +583,7 @@ export function BatchChapterUploadModal({
                           <button
                             type="button"
                             onClick={() => removeChapter(idx)}
-                            className="text-slate-500 hover:text-rose-400 p-1"
+                            className="text-slate-400 hover:text-rose-400 p-1 transition-colors"
                             aria-label="Remove chapter"
                           >
                             <Trash2 className="h-3.5 w-3.5" />

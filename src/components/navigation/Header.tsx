@@ -55,12 +55,12 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-black/50 backdrop-blur-2xl">
+      <header className="sticky top-0 z-40 w-full liquid-glass-header">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
           {/* Brand Logo & Desktop Nav */}
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center space-x-2.5 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-lg shadow-sky-500/20 border border-white/30 transition-transform group-hover:scale-105">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600 text-white shadow-lg shadow-sky-500/25 border border-white/40 transition-transform group-hover:scale-105">
                 <BookOpen className="h-4 w-4" />
               </div>
               <div className="flex flex-col">
@@ -74,32 +74,32 @@ export function Header() {
             </Link>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden md:flex items-center space-x-1 text-xs font-semibold">
+            <nav className="hidden md:flex items-center space-x-2 text-xs font-semibold">
               <Link
                 href="/"
-                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
+                className="px-3.5 py-1.5 rounded-full text-slate-300 hover:text-white liquid-glass-pill transition-all"
               >
                 Home
               </Link>
               <Link
                 href="/browse"
-                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-full text-slate-300 hover:text-white liquid-glass-pill transition-all flex items-center gap-1.5"
               >
-                <Compass className="h-3.5 w-3.5" />
+                <Compass className="h-3.5 w-3.5 text-sky-400" />
                 Browse
               </Link>
               <Link
                 href="/library"
-                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-full text-slate-300 hover:text-white liquid-glass-pill transition-all flex items-center gap-1.5"
               >
-                <Bookmark className="h-3.5 w-3.5" />
+                <Bookmark className="h-3.5 w-3.5 text-emerald-400" />
                 Library
               </Link>
               <button
                 onClick={handleRandomManga}
-                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-full text-slate-300 hover:text-white liquid-glass-pill transition-all flex items-center gap-1.5"
               >
-                <Shuffle className="h-3.5 w-3.5" />
+                <Shuffle className="h-3.5 w-3.5 text-cyan-400" />
                 Random
               </button>
             </nav>
@@ -125,7 +125,7 @@ export function Header() {
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center space-x-2 rounded-full border border-white/15 bg-white/[0.05] p-1.5 hover:bg-white/[0.1] transition-all"
+                  className="flex items-center space-x-2 rounded-full border border-white/20 liquid-glass-pill p-1 hover:border-sky-400/40 transition-all"
                 >
                   {user.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -139,13 +139,13 @@ export function Header() {
                       {user.username.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="hidden md:inline text-xs font-semibold pr-2">
+                  <span className="hidden md:inline text-xs font-semibold pr-2 text-slate-200">
                     {user.username}
                   </span>
                 </button>
 
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/15 liquid-glass-obsidian py-1.5 shadow-2xl z-50 animate-in fade-in">
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/20 liquid-glass-elevated py-2 shadow-2xl z-50 animate-in fade-in">
                     <div className="px-4 py-2.5 border-b border-white/10">
                       <p className="text-xs font-bold text-foreground">{user.username}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
@@ -205,7 +205,7 @@ export function Header() {
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-              className="md:hidden p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-foreground transition-all"
+              className="md:hidden p-2 rounded-xl liquid-glass-pill text-foreground transition-all"
               aria-label="Toggle navigation menu"
             >
               {isMobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -215,24 +215,24 @@ export function Header() {
 
         {/* Mobile Slide-down Glass Drawer */}
         {isMobileNavOpen && (
-          <div className="md:hidden border-t border-white/10 liquid-glass-obsidian px-5 py-4 space-y-4 animate-in slide-in-from-top duration-200">
+          <div className="md:hidden border-t border-white/15 liquid-glass-obsidian px-5 py-5 space-y-4 animate-in slide-in-from-top duration-200">
             {/* Mobile Search */}
             <form onSubmit={handleSearchSubmit} className="relative">
-              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search manga, authors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="liquid-glass-input pl-10 pr-4 py-2 text-xs rounded-xl w-full"
+                className="liquid-glass-input pl-10 pr-4 py-2.5 text-xs rounded-xl w-full"
               />
             </form>
 
-            <nav className="space-y-1 font-semibold text-sm">
+            <nav className="space-y-1.5 font-semibold text-sm">
               <Link
                 href="/"
                 onClick={() => setIsMobileNavOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] transition-colors"
               >
                 <BookOpen className="h-4 w-4 text-sky-400" />
                 Home
@@ -240,7 +240,7 @@ export function Header() {
               <Link
                 href="/browse"
                 onClick={() => setIsMobileNavOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] transition-colors"
               >
                 <Compass className="h-4 w-4 text-sky-400" />
                 Browse Catalog
@@ -248,14 +248,14 @@ export function Header() {
               <Link
                 href="/library"
                 onClick={() => setIsMobileNavOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] transition-colors"
               >
                 <Bookmark className="h-4 w-4 text-emerald-400" />
                 Reading Library
               </Link>
               <button
                 onClick={handleRandomManga}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/[0.06] text-left"
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] text-left transition-colors"
               >
                 <Shuffle className="h-4 w-4 text-cyan-400" />
                 Random Title
@@ -267,7 +267,7 @@ export function Header() {
                     <Link
                       href="/admin"
                       onClick={() => setIsMobileNavOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sky-300 bg-sky-500/10 border border-sky-400/25"
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl text-sky-300 bg-sky-500/10 border border-sky-400/25"
                     >
                       <Shield className="h-4 w-4 text-sky-400" />
                       Admin Console
@@ -278,7 +278,7 @@ export function Header() {
                       setIsMobileNavOpen(false);
                       logout();
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-400 hover:bg-white/[0.06] text-left"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-rose-400 hover:bg-white/[0.08] text-left transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out ({user.username})
@@ -287,12 +287,12 @@ export function Header() {
               ) : (
                 <div className="pt-3 border-t border-white/10 grid grid-cols-2 gap-2">
                   <Link href="/login" onClick={() => setIsMobileNavOpen(false)}>
-                    <Button variant="secondary" size="sm" className="w-full">
+                    <Button variant="secondary" size="sm" className="w-full h-10">
                       Sign In
                     </Button>
                   </Link>
                   <Link href="/register" onClick={() => setIsMobileNavOpen(false)}>
-                    <Button size="sm" className="w-full font-bold">
+                    <Button size="sm" className="w-full h-10 font-bold">
                       Register
                     </Button>
                   </Link>

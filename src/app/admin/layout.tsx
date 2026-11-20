@@ -23,12 +23,12 @@ export default function AdminLayout({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden">
         {/* Top Header Bar */}
-        <header className="h-16 border-b border-slate-800 bg-slate-950 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-16 border-b border-white/10 liquid-glass-header px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
             {/* Hamburger Button for Mobile */}
             <button
               onClick={() => setIsMobileNavOpen(true)}
-              className="md:hidden p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-foreground transition-colors"
+              className="md:hidden p-2 rounded-xl liquid-glass-pill text-foreground transition-colors"
               aria-label="Open navigation menu"
               aria-expanded={isMobileNavOpen}
               aria-controls="admin-sidebar"
@@ -51,7 +51,7 @@ export default function AdminLayout({
             <Link
               href="/"
               target="_blank"
-              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 hover:border-slate-600 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full liquid-glass-pill text-slate-300 hover:text-white transition-colors"
             >
               <span>View Site</span>
               <ExternalLink className="h-3 w-3 text-slate-400" />

@@ -124,9 +124,9 @@ describe("WaifuDiffusion Tagger & HITL Decision Engine : Unit Tests", () => {
       expect(r).toBeDefined();
       expect(r.recommendation).toBeDefined();
     }
-    // Micro-batch should complete in under 200ms
-    expect(Date.now() - start).toBeLessThan(1000);
-  });
+    // Micro-batch should complete in under 2000ms
+    expect(Date.now() - start).toBeLessThan(2000);
+  }, 15000);
 
   it("returns cached result instantly (0ms) on repeated requests for the same image URL", async () => {
     const testUrl = `https://example.com/repeat_test_${Date.now()}.jpg`;

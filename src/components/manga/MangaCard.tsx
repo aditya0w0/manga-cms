@@ -57,7 +57,7 @@ export function MangaCard({
 
   return (
     <Link href={`/manga/${slug}`} className="group flex flex-col">
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/15 bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/40 transition-all duration-300 group-hover:border-sky-400/50 group-hover:shadow-sky-500/10 group-hover:shadow-2xl group-hover:-translate-y-1">
+      <div className="relative aspect-[3/4] w-full overflow-hidden liquid-glass-card transition-all duration-300">
         {showCover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -80,7 +80,7 @@ export function MangaCard({
         {/* Top badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1">
           {contentType && (
-            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xl text-sky-200 border border-white/15 shadow-sm">
+            <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full liquid-glass-pill text-sky-300 border-white/20 shadow-sm">
               {contentType}
             </span>
           )}
@@ -88,7 +88,7 @@ export function MangaCard({
 
         <div className="absolute top-2.5 right-2.5">
           {rating > 0 && (
-            <div className="flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-xl px-2 py-0.5 text-xs font-bold text-amber-400 border border-white/15 shadow-sm">
+            <div className="flex items-center gap-1 rounded-full liquid-glass-pill px-2.5 py-0.5 text-xs font-bold text-amber-400 border-white/20 shadow-sm">
               <Star className="h-3 w-3 fill-amber-400" />
               <span>{rating.toFixed(1)}</span>
             </div>
@@ -98,7 +98,7 @@ export function MangaCard({
         {/* Bottom details inside card */}
         <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-xs text-muted-foreground">
           {latestChapter ? (
-            <span className="font-bold text-white bg-gradient-to-r from-sky-500/80 to-blue-600/80 backdrop-blur-xl px-2.5 py-0.5 rounded-full text-[10px] border border-white/20 shadow-sm">
+            <span className="font-bold text-white bg-gradient-to-r from-sky-500/90 to-blue-600/90 backdrop-blur-xl px-2.5 py-0.5 rounded-full text-[10px] border border-white/30 shadow-sm">
               Ch. {latestChapter.chapterNumber}
             </span>
           ) : (
@@ -106,7 +106,7 @@ export function MangaCard({
           )}
 
           {status && (
-            <span className="text-[9px] font-bold uppercase text-slate-300 bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
+            <span className="text-[9px] font-bold uppercase text-slate-300 liquid-glass-pill px-2 py-0.5 border-white/15">
               {status}
             </span>
           )}

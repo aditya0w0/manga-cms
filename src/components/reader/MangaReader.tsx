@@ -254,7 +254,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 <span className="hidden sm:inline font-bold">{chapter.manga.title}</span>
               </Button>
             </Link>
-            <span className="text-xs font-bold text-cyan-400 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 font-mono">
+            <span className="text-xs font-bold text-cyan-400 px-3 py-1 rounded-full liquid-glass-pill font-mono">
               Ch. {chapter.chapterNumber}
             </span>
             {chapter.chapterTitle && (
@@ -270,7 +270,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               variant="ghost"
               size="sm"
               onClick={() => setIsChapterListOpen(true)}
-              className="h-8 text-xs gap-1 text-white hover:bg-white/10"
+              className="h-8 text-xs gap-1.5 text-white liquid-glass-pill px-3 hover:border-cyan-400/40"
             >
               <List className="h-4 w-4" />
               <span className="hidden sm:inline">Chapters</span>
@@ -280,7 +280,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               variant="ghost"
               size="sm"
               onClick={() => setIsSettingsOpen(true)}
-              className="h-8 text-xs gap-1 text-white hover:bg-white/10"
+              className="h-8 text-xs gap-1.5 text-white liquid-glass-pill px-3 hover:border-cyan-400/40"
             >
               <Sliders className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -290,7 +290,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               variant="ghost"
               size="sm"
               onClick={toggleFullscreen}
-              className="h-8 text-white hover:bg-white/10"
+              className="h-8 text-white liquid-glass-pill px-2.5 hover:border-cyan-400/40"
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
@@ -437,7 +437,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
           <div className="flex items-center space-x-2">
             {chapter.prevChapter ? (
               <Link href={`/read/${chapter.prevChapter.id}`}>
-                <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-white/10 text-white hover:bg-white/10 hover:border-cyan-500/30">
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 liquid-glass-pill text-white hover:border-cyan-400/40 px-3">
                   <ChevronLeft className="h-4 w-4" /> Prev Chapter
                 </Button>
               </Link>
@@ -449,7 +449,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
             {chapter.nextChapter ? (
               <Link href={`/read/${chapter.nextChapter.id}`}>
-                <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-white/10 text-white hover:bg-white/10 hover:border-cyan-500/30">
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 liquid-glass-pill text-white hover:border-cyan-400/40 px-3">
                   Next Chapter <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -473,7 +473,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              <div className="flex items-center space-x-1.5 text-xs font-mono font-bold px-3 py-1 rounded-full bg-white/[0.06] border border-white/10">
+              <div className="flex items-center space-x-1.5 text-xs font-mono font-bold px-3.5 py-1 rounded-full liquid-glass-pill">
                 <span className="text-cyan-400">{currentPage}</span>
                 <span className="text-white/40">/</span>
                 <span className="text-white/80">{chapter.pages.length}</span>

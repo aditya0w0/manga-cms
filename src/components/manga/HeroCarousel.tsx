@@ -35,7 +35,7 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
   const current = items[currentIndex];
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl border border-white/20 bg-slate-950/80 backdrop-blur-3xl shadow-2xl shadow-black/60 h-[440px] sm:h-[480px]">
+    <div className="relative w-full overflow-hidden rounded-3xl liquid-glass shadow-2xl h-[440px] sm:h-[480px]">
       {/* Background Banner with blur */}
       <div className="absolute inset-0">
         {current.bannerUrl || current.coverUrl ? (
@@ -50,20 +50,20 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
                 e.currentTarget.src = getProxyFallbackUrl(url);
               }
             }}
-            className="h-full w-full object-cover object-center opacity-25 blur-md scale-105 transition-all duration-700"
+            className="h-full w-full object-cover object-center opacity-30 blur-md scale-105 transition-all duration-700"
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-r from-sky-500/10 to-transparent" />
+          <div className="h-full w-full bg-gradient-to-r from-sky-500/15 via-cyan-500/5 to-transparent" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
       </div>
 
       {/* Content */}
       <div className="relative z-10 flex h-full items-center p-6 sm:p-10">
         <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-8 w-full max-w-5xl">
           {/* Cover poster */}
-          <div className="hidden sm:block shrink-0 w-44 md:w-56 aspect-[3/4] rounded-2xl overflow-hidden border border-white/25 shadow-2xl shadow-sky-500/10">
+          <div className="hidden sm:block shrink-0 w-44 md:w-56 aspect-[3/4] rounded-2xl overflow-hidden liquid-glass-card shadow-2xl">
             {current.coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -87,17 +87,17 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
           {/* Details */}
           <div className="flex-1 flex flex-col justify-center space-y-3.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30 backdrop-blur-xl shadow-sm flex items-center gap-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider px-3.5 py-1 rounded-full liquid-glass-pill text-sky-300 border-sky-400/40 shadow-sm flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3 text-sky-400" />
                 Featured Title
               </span>
               {current.contentType && (
-                <span className="text-xs font-semibold uppercase px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/15 text-foreground backdrop-blur-md">
+                <span className="text-xs font-semibold uppercase px-3 py-1 rounded-full liquid-glass-pill text-slate-200">
                   {current.contentType}
                 </span>
               )}
               {current.rating && current.rating > 0 ? (
-                <div className="flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-xl px-2.5 py-0.5 text-xs font-bold text-amber-400 border border-white/15">
+                <div className="flex items-center gap-1 rounded-full liquid-glass-pill px-3 py-1 text-xs font-bold text-amber-400">
                   <Star className="h-3.5 w-3.5 fill-amber-400" />
                   <span>{current.rating.toFixed(1)}</span>
                 </div>
@@ -113,7 +113,7 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
                 {current.genres.map((g) => (
                   <span
                     key={g.genre.slug}
-                    className="text-xs font-semibold text-slate-300 bg-white/[0.05] border border-white/10 px-2.5 py-0.5 rounded-full backdrop-blur-md"
+                    className="text-xs font-semibold text-slate-300 liquid-glass-pill px-3 py-1"
                   >
                     {g.genre.name}
                   </span>
@@ -121,7 +121,7 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
               </div>
             )}
 
-            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 leading-relaxed max-w-2xl">
+            <p className="text-xs sm:text-sm text-slate-300 line-clamp-3 leading-relaxed max-w-2xl font-normal">
               {current.description || "No synopsis available."}
             </p>
 

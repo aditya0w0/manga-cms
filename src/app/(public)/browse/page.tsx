@@ -141,7 +141,7 @@ function BrowseContent() {
                 setSelectedGenre(e.target.value);
                 setPage(1);
               }}
-              className="w-full h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+              className="w-full h-10 rounded-xl liquid-glass-input px-3 text-xs text-foreground focus:outline-none"
             >
               <option value="" className="bg-[#0f141c] text-white">All Genres</option>
               {genres.map((g) => (
@@ -163,7 +163,7 @@ function BrowseContent() {
                 setSelectedType(e.target.value);
                 setPage(1);
               }}
-              className="w-full h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+              className="w-full h-10 rounded-xl liquid-glass-input px-3 text-xs text-foreground focus:outline-none"
             >
               <option value="" className="bg-[#0f141c] text-white">All Formats</option>
               <option value="MANGA" className="bg-[#0f141c] text-white">Manga</option>
@@ -185,7 +185,7 @@ function BrowseContent() {
                 setSelectedStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+              className="w-full h-10 rounded-xl liquid-glass-input px-3 text-xs text-foreground focus:outline-none"
             >
               <option value="" className="bg-[#0f141c] text-white">All Statuses</option>
               <option value="ONGOING" className="bg-[#0f141c] text-white">Ongoing</option>
@@ -205,7 +205,7 @@ function BrowseContent() {
                 setSortBy(e.target.value);
                 setPage(1);
               }}
-              className="w-full h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+              className="w-full h-10 rounded-xl liquid-glass-input px-3 text-xs text-foreground focus:outline-none"
             >
               <option value="popularity" className="bg-[#0f141c] text-white">Popularity</option>
               <option value="rating" className="bg-[#0f141c] text-white">Top Rated</option>

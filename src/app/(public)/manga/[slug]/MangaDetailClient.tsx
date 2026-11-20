@@ -176,7 +176,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
         <div className="relative z-10 px-6 pb-8 -mt-24 sm:-mt-32">
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Poster Cover */}
-            <div className="shrink-0 w-44 sm:w-56 aspect-[3/4] rounded-2xl overflow-hidden border border-white/20 bg-black/60 shadow-[0_16px_40px_rgba(0,0,0,0.8)]">
+            <div className="shrink-0 w-44 sm:w-56 aspect-[3/4] rounded-2xl overflow-hidden liquid-glass-card shadow-2xl">
               {manga.coverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -201,21 +201,21 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
             <div className="flex-1 flex flex-col space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 {manga.contentType && (
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-900 text-sky-300 border border-slate-700">
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full liquid-glass-pill text-sky-300">
                     {manga.contentType}
                   </span>
                 )}
                 {manga.status && (
-                  <span className="text-xs font-medium px-2.5 py-0.5 rounded-md bg-slate-900 text-slate-300 border border-slate-700">
+                  <span className="text-xs font-medium px-3 py-1 rounded-full liquid-glass-pill text-slate-300">
                     {manga.status}
                   </span>
                 )}
                 {manga.releaseYear && (
-                  <span className="text-xs text-slate-400 font-medium px-2.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 font-mono">
+                  <span className="text-xs text-slate-300 font-medium px-3 py-1 rounded-full liquid-glass-pill font-mono">
                     {manga.releaseYear}
                   </span>
                 )}
-                <span className="text-xs text-emerald-400 font-medium px-2.5 py-0.5 rounded-md bg-emerald-950/40 border border-emerald-800/60 flex items-center gap-1.5">
+                <span className="text-xs text-emerald-400 font-medium px-3 py-1 rounded-full liquid-glass-pill flex items-center gap-1.5 border-emerald-500/30">
                   <ShieldCheck className="h-3.5 w-3.5" />
                   Self-Hosted Library
                 </span>
@@ -258,7 +258,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {manga.genres.map((g: any) => (
                     <Link key={g.genre.slug} href={`/browse?genre=${g.genre.slug}`}>
-                      <span className="text-xs font-medium text-muted-foreground bg-white/[0.04] hover:text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all border border-white/10 px-3 py-1 rounded-full">
+                      <span className="text-xs font-medium text-slate-300 liquid-glass-pill hover:text-cyan-300 transition-all px-3 py-1">
                         {g.genre.name}
                       </span>
                     </Link>
@@ -270,7 +270,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
               <div className="flex flex-wrap items-center gap-3 pt-3">
                 {firstChapter ? (
                   <Link href={`/read/${firstChapter.id}`}>
-                    <Button size="lg" className="font-bold gap-2 shadow-[0_0_20px_rgba(14,165,233,0.3)]">
+                    <Button size="lg" className="font-bold gap-2 shadow-[0_0_24px_rgba(14,165,233,0.35)]">
                       <BookOpen className="h-5 w-5" />
                       Start Reading (Ch. {firstChapter.chapterNumber})
                     </Button>
@@ -285,7 +285,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                 <select
                   value={libraryStatus}
                   onChange={(e) => handleLibraryChange(e.target.value)}
-                  className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+                  className="h-10 rounded-xl liquid-glass-input px-3 text-xs font-semibold text-foreground focus:outline-none w-auto"
                 >
                   <option value="PLAN_TO_READ" className="bg-[#0f141c] text-white">Plan to Read</option>
                   <option value="READING" className="bg-[#0f141c] text-white">Reading</option>
@@ -299,14 +299,14 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                   variant="outline"
                   size="default"
                   onClick={handleToggleFavorite}
-                  className={`gap-1.5 border-white/10 hover:border-rose-500/40 ${isFavorite ? "text-rose-400 border-rose-500/40 bg-rose-500/10" : ""}`}
+                  className={`gap-1.5 liquid-glass-pill hover:border-rose-500/40 ${isFavorite ? "text-rose-400 border-rose-500/40 bg-rose-500/10" : "text-slate-300"}`}
                 >
                   <Heart className={`h-4 w-4 ${isFavorite ? "fill-rose-400 text-rose-400" : ""}`} />
                   {isFavorite ? "Favorited" : "Favorite"}
                 </Button>
 
                 {/* Share Button */}
-                <Button variant="outline" size="default" onClick={handleShare} className="gap-1.5 border-white/10 hover:border-cyan-500/30">
+                <Button variant="outline" size="default" onClick={handleShare} className="gap-1.5 liquid-glass-pill hover:border-cyan-500/40 text-slate-300">
                   <Share2 className="h-4 w-4" />
                   {shareCopied ? "Link Copied!" : "Share"}
                 </Button>
@@ -357,7 +357,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                 placeholder="Find chapter..."
                 value={chapterSearch}
                 onChange={(e) => setChapterSearch(e.target.value)}
-                className="w-full h-9 rounded-xl border border-white/10 bg-white/[0.04] pl-8 pr-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+                className="w-full h-9 rounded-xl liquid-glass-input pl-8 pr-3 text-xs text-foreground focus:outline-none"
               />
             </div>
 
@@ -366,7 +366,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
               variant="outline"
               size="sm"
               onClick={() => setSortAsc(!sortAsc)}
-              className="gap-1.5 text-xs h-9 border-white/10 hover:border-cyan-500/30"
+              className="gap-1.5 text-xs h-9 liquid-glass-pill hover:border-cyan-500/40 text-slate-300"
             >
               <ArrowUpDown className="h-3.5 w-3.5" />
               {sortAsc ? "Oldest First" : "Newest First"}
@@ -381,7 +381,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
               <Link
                 key={ch.id}
                 href={`/read/${ch.id}`}
-                className="group flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all duration-200"
+                className="group flex items-center justify-between p-3.5 rounded-2xl liquid-glass-card hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all duration-200"
               >
                 <div className="flex flex-col space-y-0.5">
                   <span className="text-sm font-bold text-foreground group-hover:text-cyan-400 transition-colors">
@@ -399,7 +399,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                     <span className="hidden sm:inline font-mono">{formatDate(ch.releaseDate)}</span>
                   )}
                   {ch._count?.pages ? (
-                    <span className="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 font-mono text-[10px] text-cyan-400">
+                    <span className="px-2.5 py-0.5 rounded-full liquid-glass-pill font-mono text-[10px] text-cyan-400">
                       {ch._count.pages}p
                     </span>
                   ) : null}
