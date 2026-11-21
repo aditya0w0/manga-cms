@@ -326,71 +326,78 @@ export function BatchImportMonitor({
       </div>
 
       {/* Chapter Breakdown */}
-      <div className="space-y-2 pt-2 border-t border-slate-800">
-        <div className="flex items-center justify-between text-xs">
-          <h4 className="font-medium text-slate-300">
-            Chapter Queue ({batch.chapterJobs.length})
-          </h4>
-          {batch.chapterJobs.length > 5 && (
-            <button
-              onClick={() => setShowAllJobs(!showAllJobs)}
-              className="text-sky-400 hover:text-sky-300 text-[11px] flex items-center gap-1"
-            >
-              {showAllJobs ? "Show fewer" : `View all ${batch.chapterJobs.length}`}
-              {showAllJobs ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            </button>
-          )}
-        </div>
-
-        <div className="divide-y divide-slate-800/60 border border-slate-800 rounded-lg overflow-hidden bg-slate-950/40">
-          {(showAllJobs ? batch.chapterJobs : batch.chapterJobs.slice(0, 5)).map((job) => (
-            <div
-              key={job.id}
-              className="p-2.5 flex items-center justify-between gap-2 text-xs hover:bg-slate-800/20"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono font-bold text-sky-300 bg-slate-800 px-1.5 py-0.5 rounded text-[11px] shrink-0">
-                  Ch. {job.displayNumber}
-                </span>
-                <span className="text-slate-300 truncate">
-                  {job.title || `Chapter ${job.displayNumber}`}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {job.pagesIngested > 0 && (
-                  <span className="text-[11px] font-mono text-slate-400">
-                    {job.pagesIngested} pages
-                  </span>
-                )}
-
-                <Badge
-                  variant={
-                    job.status === "COMPLETED"
-                      ? "success"
-                      : job.status === "PROCESSING"
-                      ? "secondary"
-                      : job.status === "FAILED"
-                      ? "destructive"
-                      : job.status === "SKIPPED"
-                      ? "warning"
-                      : "outline"
-                  }
-                  className="text-[10px]"
+      {(() => {
+        const jobsList = batch.chapterJobs || (batch as any).recentChapters || [];
+        return (
+          <div className="space-y-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-between text-xs">
+              <h4 className="font-medium text-slate-300">
+                Chapter Queue ({jobsList.length})
+              </h4>
+              {jobsList.length > 5 && (
+                <button
+                  onClick={() => setShowAllJobs(!showAllJobs)}
+                  className="text-sky-400 hover:text-sky-300 text-[11px] flex items-center gap-1"
                 >
-                  {job.status}
-                </Badge>
-              </div>
-
-              {job.errorMessage && (
-                <div className="w-full text-[11px] text-rose-400 font-mono mt-1 pt-1 border-t border-slate-800/50">
-                  {job.errorMessage}
-                </div>
+                  {showAllJobs ? "Show fewer" : `View all ${jobsList.length}`}
+                  {showAllJobs ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
               )}
             </div>
-          ))}
-        </div>
-      </div>
+
+            <div className="divide-y divide-slate-800/60 border border-slate-800 rounded-lg overflow-hidden bg-slate-950/40">
+              {(showAllJobs ? jobsList : jobsList.slice(0, 5)).map((job) => (
+                <div
+                  key={job.id || job.chapterKey}
+                  className="p-2.5 space-y-1.5 hover:bg-slate-800/20 text-xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono font-bold text-sky-300 bg-slate-800 px-1.5 py-0.5 rounded text-[11px] shrink-0">
+                        Ch. {job.displayNumber}
+                      </span>
+                      <span className="text-slate-300 truncate">
+                        {job.title || `Chapter ${job.displayNumber}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {job.pagesIngested > 0 && (
+                        <span className="text-[11px] font-mono text-slate-400">
+                          {job.pagesIngested} pages
+                        </span>
+                      )}
+
+                      <Badge
+                        variant={
+                          job.status === "COMPLETED"
+                            ? "success"
+                            : job.status === "PROCESSING"
+                            ? "secondary"
+                            : job.status === "FAILED"
+                            ? "destructive"
+                            : job.status === "SKIPPED"
+                            ? "warning"
+                            : "outline"
+                        }
+                        className="text-[10px]"
+                      >
+                        {job.status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {job.errorMessage && (
+                    <div className="w-full text-[11px] text-rose-400 font-mono pt-1 border-t border-slate-800/50">
+                      {job.errorMessage}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {onClose && (
         <div className="pt-2 flex justify-end">

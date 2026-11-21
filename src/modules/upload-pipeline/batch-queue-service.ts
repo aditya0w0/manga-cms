@@ -596,6 +596,7 @@ export class BatchQueueService {
 
   /**
    * Resets all FAILED chapter jobs back to PENDING for retry.
+   * Already completed chapters (e.g. 1 to 1400) remain untouched.
    */
   static async retryFailedJobs(batchId: string): Promise<{ retriedCount: number }> {
     const db = await getPrisma();
@@ -622,12 +623,13 @@ export class BatchQueueService {
       },
     });
 
-    if (updated.count > 0) {
+    if (updated.count > 0 || batch.status !== "PROCESSING") {
       await db.importBatch.update({
         where: { id: batch.id },
         data: {
           status: "QUEUED",
           failedChapters: 0,
+          finishedAt: null,
         },
       });
     }
@@ -636,7 +638,98 @@ export class BatchQueueService {
   }
 
   /**
-   * Cancels remaining PENDING chapter jobs in a batch.
+   * Resumes a batch from its checkpoint: resets any FAILED and CANCELLED jobs back to PENDING.
+   * COMPLETED chapters (e.g. 1 to 1400) are preserved permanently without reprocessing.
+   */
+  static async resumeBatch(batchId: string): Promise<{ resumedCount: number }> {
+    const db = await getPrisma();
+
+    const batch = await db.importBatch.findUnique({
+      where: { batchId },
+    });
+
+    if (!batch) {
+      throw new Error(`Batch not found: ${batchId}`);
+    }
+
+    const updated = await db.importChapterJob.updateMany({
+      where: {
+        batchId: batch.id,
+        status: { in: ["FAILED", "CANCELLED"] },
+      },
+      data: {
+        status: "PENDING",
+        attempts: 0,
+        lockedAt: null,
+        workerId: null,
+        errorMessage: null,
+      },
+    });
+
+    if (updated.count > 0 || batch.status !== "PROCESSING") {
+      await db.importBatch.update({
+        where: { id: batch.id },
+        data: {
+          status: "QUEUED",
+          failedChapters: 0,
+          finishedAt: null,
+        },
+      });
+    }
+
+    return { resumedCount: updated.count };
+  }
+
+  /**
+   * Resets a single FAILED chapter job back to PENDING for individual checkpoint recovery.
+   */
+  static async retryChapterJob(jobId: string): Promise<boolean> {
+    const db = await getPrisma();
+
+    const job = await db.importChapterJob.findUnique({
+      where: { id: jobId },
+      include: { batch: true },
+    });
+
+    if (!job) {
+      throw new Error(`Chapter job not found: ${jobId}`);
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.importChapterJob.update({
+        where: { id: jobId },
+        data: {
+          status: "PENDING",
+          attempts: 0,
+          lockedAt: null,
+          workerId: null,
+          errorMessage: null,
+        },
+      });
+
+      if (job.status === "FAILED") {
+        await tx.importBatch.update({
+          where: { id: job.batchId },
+          data: {
+            status: "QUEUED",
+            failedChapters: { decrement: 1 },
+          },
+        });
+      } else if (job.batch.status === "CANCELLED" || job.batch.status === "FAILED" || job.batch.status === "PARTIAL_FAILED") {
+        await tx.importBatch.update({
+          where: { id: job.batchId },
+          data: {
+            status: "QUEUED",
+          },
+        });
+      }
+    });
+
+    return true;
+  }
+
+  /**
+   * Cancels remaining PENDING chapter jobs in a batch safely.
    */
   static async cancelBatch(batchId: string): Promise<void> {
     const db = await getPrisma();
@@ -668,31 +761,151 @@ export class BatchQueueService {
   }
 
   /**
-   * Fetches live batch status and chapter details.
+   * Computes aggregate batch metrics across the entire system.
    */
-  static async getBatchStatus(batchId: string): Promise<any | null> {
+  static async getGlobalBatchMetrics() {
+    const db = await getPrisma();
+
+    const [
+      totalBatches,
+      activeBatches,
+      completedBatches,
+      failedBatches,
+      batchSums,
+    ] = await Promise.all([
+      db.importBatch.count(),
+      db.importBatch.count({
+        where: { status: { in: ["QUEUED", "PROCESSING", "SCANNING", "UPLOADED"] } },
+      }),
+      db.importBatch.count({ where: { status: "COMPLETED" } }),
+      db.importBatch.count({
+        where: { status: { in: ["FAILED", "PARTIAL_FAILED"] } },
+      }),
+      db.importBatch.aggregate({
+        _sum: {
+          totalChapters: true,
+          completedChapters: true,
+          failedChapters: true,
+          totalPages: true,
+          processedPages: true,
+          totalInputBytes: true,
+          totalOutputBytes: true,
+        },
+      }),
+    ]);
+
+    return {
+      totalBatches,
+      activeBatches,
+      completedBatches,
+      failedBatches,
+      totalChapters: batchSums._sum.totalChapters || 0,
+      completedChapters: batchSums._sum.completedChapters || 0,
+      failedChapters: batchSums._sum.failedChapters || 0,
+      totalPages: batchSums._sum.totalPages || 0,
+      processedPages: batchSums._sum.processedPages || 0,
+      totalInputBytes: Number(batchSums._sum.totalInputBytes || BigInt(0)),
+      totalOutputBytes: Number(batchSums._sum.totalOutputBytes || BigInt(0)),
+    };
+  }
+
+  /**
+   * Fetches live batch status, checkpoint state, and chapter details with optional pagination and filters.
+   */
+  static async getBatchStatus(
+    batchId: string,
+    options?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      search?: string;
+    }
+  ): Promise<any | null> {
     const db = await getPrisma();
 
     const batch = await db.importBatch.findUnique({
       where: { batchId },
       include: {
         comicJobs: true,
-        chapterJobs: {
-          take: 50,
-          orderBy: { sortKey: "asc" },
-        },
       },
     });
 
     if (!batch) return null;
 
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.min(200, Math.max(1, options?.limit || 50));
+    const skip = (page - 1) * limit;
+
+    const chapterWhere: any = { batchId: batch.id };
+    if (options?.status && options.status !== "ALL") {
+      chapterWhere.status = options.status;
+    }
+    if (options?.search && options.search.trim()) {
+      const q = options.search.trim();
+      chapterWhere.OR = [
+        { displayNumber: { contains: q } },
+        { title: { contains: q, mode: "insensitive" } },
+        { chapterKey: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    const [chapterJobs, totalFilteredChapters, statusCountsRaw] = await Promise.all([
+      db.importChapterJob.findMany({
+        where: chapterWhere,
+        orderBy: [{ sortKey: "asc" }, { createdAt: "asc" }],
+        skip,
+        take: limit,
+      }),
+      db.importChapterJob.count({ where: chapterWhere }),
+      db.importChapterJob.groupBy({
+        by: ["status"],
+        where: { batchId: batch.id },
+        _count: { status: true },
+      }),
+    ]);
+
+    const statusCounts: Record<string, number> = {
+      PENDING: 0,
+      PROCESSING: 0,
+      COMPLETED: 0,
+      FAILED: 0,
+      SKIPPED: 0,
+      CANCELLED: 0,
+    };
+    for (const sc of statusCountsRaw) {
+      statusCounts[sc.status] = sc._count.status;
+    }
+
+    const serializedChapters = chapterJobs.map((ch) => ({
+      id: ch.id,
+      chapterKey: ch.chapterKey,
+      displayNumber: ch.displayNumber,
+      sortKey: ch.sortKey,
+      title: ch.title,
+      volume: ch.volume,
+      status: ch.status,
+      attempts: ch.attempts,
+      maxAttempts: ch.maxAttempts,
+      pagesIngested: ch.pagesIngested,
+      slicesCreated: ch.slicesCreated,
+      outputBytes: Number(ch.outputBytes),
+      errorMessage: ch.errorMessage,
+      lockedAt: ch.lockedAt,
+      workerId: ch.workerId,
+      createdAt: ch.createdAt,
+      updatedAt: ch.updatedAt,
+    }));
+
     return {
+      id: batch.id,
       batchId: batch.batchId,
       status: batch.status,
       sourceMode: batch.sourceMode,
+      sourceRef: batch.sourceRef,
       compressionPreset: batch.compressionPreset,
       conflictPolicy: batch.conflictPolicy,
       autoPublish: batch.autoPublish,
+      errorSummary: batch.errorSummary,
       counters: {
         totalComics: batch.totalComics,
         totalChapters: batch.totalChapters,
@@ -700,24 +913,33 @@ export class BatchQueueService {
         failedChapters: batch.failedChapters,
         totalPages: batch.totalPages,
         processedPages: batch.processedPages,
+        totalInputBytes: Number(batch.totalInputBytes),
         totalOutputBytes: Number(batch.totalOutputBytes),
       },
+      statusCounts,
       comics: batch.comicJobs.map((c) => ({
+        id: c.id,
         slug: c.slug,
         status: c.status,
+        totalChapters: c.totalChapters,
         completedChapters: c.completedChapters,
         failedChapters: c.failedChapters,
       })),
-      recentChapters: batch.chapterJobs.map((ch) => ({
-        chapterKey: ch.chapterKey,
-        displayNumber: ch.displayNumber,
-        sortKey: ch.sortKey,
-        title: ch.title,
-        status: ch.status,
-        pagesIngested: ch.pagesIngested,
-        slicesCreated: ch.slicesCreated,
-        errorMessage: ch.errorMessage,
-      })),
+      chapterJobs: serializedChapters,
+      recentChapters: serializedChapters,
+      pagination: {
+        page,
+        limit,
+        total: totalFilteredChapters,
+        totalPages: Math.ceil(totalFilteredChapters / limit) || 1,
+      },
+      checkpoint: {
+        isSafe: true,
+        completedCount: statusCounts.COMPLETED,
+        failedCount: statusCounts.FAILED,
+        pendingCount: statusCounts.PENDING,
+        resumableCount: statusCounts.FAILED + statusCounts.CANCELLED + statusCounts.PENDING,
+      },
       createdAt: batch.createdAt,
       finishedAt: batch.finishedAt,
     };

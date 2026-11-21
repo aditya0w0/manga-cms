@@ -3,6 +3,7 @@ import { AuthService } from "@/modules/auth/auth-service";
 import { ApiResponse } from "@/lib/api-response";
 import { Role } from "@prisma/client";
 import { BatchQueueService } from "@/modules/upload-pipeline/batch-queue-service";
+import { getOrStartInProcessWorker } from "@/workers/batch-ingest-worker";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,10 @@ export async function POST(
     await AuthService.requireUser(req, Role.EDITOR);
 
     const result = await BatchQueueService.retryFailedJobs(params.batchId);
+
+    // Ensure worker is actively polling the queue
+    getOrStartInProcessWorker();
+
     return ApiResponse.success({
       batchId: params.batchId,
       retriedCount: result.retriedCount,

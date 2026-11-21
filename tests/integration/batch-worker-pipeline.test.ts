@@ -269,4 +269,134 @@ describe("Phase 4: Standalone Background Worker & Batch Queue Pipeline", () => {
     expect(refreshed?.lockedAt).toBeNull();
     expect(refreshed?.workerId).toBeNull();
   });
+
+  it("preserves completed chapters and safely resumes from failure checkpoint without restarting from chapter 1", async () => {
+    const db = await getPrisma();
+    const batchId = `batch_checkpoint_${Date.now()}`;
+    const comicSlug = `worker-comic-checkpoint-${Date.now()}`;
+
+    const manga = await db.manga.create({
+      data: {
+        title: "Checkpoint Comic",
+        slug: comicSlug,
+        publicationStatus: "INGESTING",
+        status: "ONGOING",
+        contentType: "MANGA",
+      },
+    });
+
+    const batch = await db.importBatch.create({
+      data: {
+        batchId,
+        status: "PROCESSING",
+        sourceMode: "archive",
+        sourceRef: "/tmp/fake_large_archive.zip",
+        totalComics: 1,
+        totalChapters: 3,
+        completedChapters: 1,
+        failedChapters: 1,
+      },
+    });
+
+    const comicJob = await db.importComicJob.create({
+      data: {
+        batchId: batch.id,
+        mangaId: manga.id,
+        slug: comicSlug,
+        status: "PENDING",
+      },
+    });
+
+    // Chapter 1: COMPLETED (e.g. Chapter 1400 in user scenario)
+    const job1 = await db.importChapterJob.create({
+      data: {
+        batchId: batch.id,
+        comicJobId: comicJob.id,
+        mangaId: manga.id,
+        chapterKey: "1400",
+        displayNumber: "1400",
+        sortKey: "001400.0000",
+        sourcePath: "ch_1400",
+        sourceType: "directory",
+        idempotencyKey: `${batchId}:${comicSlug}:1400:v1`,
+        status: "COMPLETED",
+        pagesIngested: 20,
+        outputBytes: BigInt(500000),
+      },
+    });
+
+    // Chapter 2: FAILED (e.g. Chapter 1401 failed)
+    const job2 = await db.importChapterJob.create({
+      data: {
+        batchId: batch.id,
+        comicJobId: comicJob.id,
+        mangaId: manga.id,
+        chapterKey: "1401",
+        displayNumber: "1401",
+        sortKey: "001401.0000",
+        sourcePath: "ch_1401",
+        sourceType: "directory",
+        idempotencyKey: `${batchId}:${comicSlug}:1401:v1`,
+        status: "FAILED",
+        errorMessage: "Network timeout or corrupt archive slice at chapter 1401",
+        attempts: 1,
+      },
+    });
+
+    // Chapter 3: PENDING
+    const job3 = await db.importChapterJob.create({
+      data: {
+        batchId: batch.id,
+        comicJobId: comicJob.id,
+        mangaId: manga.id,
+        chapterKey: "1402",
+        displayNumber: "1402",
+        sortKey: "001402.0000",
+        sourcePath: "ch_1402",
+        sourceType: "directory",
+        idempotencyKey: `${batchId}:${comicSlug}:1402:v1`,
+        status: "PENDING",
+      },
+    });
+
+    // 1. Verify getBatchStatus returns checkpoint status and filters
+    const statusData = await BatchQueueService.getBatchStatus(batchId);
+    expect(statusData).not.toBeNull();
+    expect(statusData.statusCounts.COMPLETED).toBe(1);
+    expect(statusData.statusCounts.FAILED).toBe(1);
+    expect(statusData.statusCounts.PENDING).toBe(1);
+    expect(statusData.checkpoint.isSafe).toBe(true);
+    expect(statusData.checkpoint.completedCount).toBe(1);
+    expect(statusData.checkpoint.resumableCount).toBe(2);
+
+    // 2. Filter by FAILED only
+    const failedOnly = await BatchQueueService.getBatchStatus(batchId, { status: "FAILED" });
+    expect(failedOnly.chapterJobs).toHaveLength(1);
+    expect(failedOnly.chapterJobs[0].displayNumber).toBe("1401");
+    expect(failedOnly.chapterJobs[0].errorMessage).toContain("corrupt archive slice");
+
+    // 3. Test Single Chapter Retry
+    await BatchQueueService.retryChapterJob(job2.id);
+    const refreshedJob2 = await db.importChapterJob.findUnique({ where: { id: job2.id } });
+    expect(refreshedJob2?.status).toBe("PENDING");
+    expect(refreshedJob2?.errorMessage).toBeNull();
+
+    // Verify Chapter 1 was NEVER touched and remains COMPLETED
+    const untouchedJob1 = await db.importChapterJob.findUnique({ where: { id: job1.id } });
+    expect(untouchedJob1?.status).toBe("COMPLETED");
+    expect(untouchedJob1?.pagesIngested).toBe(20);
+
+    // 4. Test Resume Batch
+    await db.importChapterJob.update({ where: { id: job2.id }, data: { status: "FAILED" } });
+    const resumeRes = await BatchQueueService.resumeBatch(batchId);
+    expect(resumeRes.resumedCount).toBe(1);
+
+    const afterResumeJob1 = await db.importChapterJob.findUnique({ where: { id: job1.id } });
+    const afterResumeJob2 = await db.importChapterJob.findUnique({ where: { id: job2.id } });
+    const afterResumeJob3 = await db.importChapterJob.findUnique({ where: { id: job3.id } });
+
+    expect(afterResumeJob1?.status).toBe("COMPLETED"); // Chapter 1 preserved!
+    expect(afterResumeJob2?.status).toBe("PENDING");   // Chapter 2 queued for retry!
+    expect(afterResumeJob3?.status).toBe("PENDING");   // Chapter 3 queued!
+  });
 });

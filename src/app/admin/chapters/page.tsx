@@ -19,6 +19,7 @@ import {
   BookOpen,
   Eye,
   Check,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -275,6 +276,15 @@ export default function AdminChaptersPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link href="/admin/batch-upload">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs font-medium border-sky-800/60 text-sky-300 hover:bg-sky-950/40"
+            >
+              <Activity className="h-4 w-4" /> Ingestion Monitor
+            </Button>
+          </Link>
           <Button
             size="sm"
             variant="outline"

@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Tag,
   X,
+  FolderArchive,
 } from "lucide-react";
 
 interface NavItem {
@@ -36,6 +37,7 @@ const navigationSections: NavSection[] = [
       { name: "Overview", href: "/admin", icon: LayoutDashboard },
       { name: "Manga", href: "/admin/manga", icon: BookOpen },
       { name: "Chapters", href: "/admin/chapters", icon: Layers },
+      { name: "Batch Ingestion", href: "/admin/batch-upload", icon: FolderArchive },
       { name: "Media", href: "/admin/media", icon: Image },
       { name: "Genres", href: "/admin/genres", icon: Tag },
     ],

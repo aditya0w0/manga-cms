@@ -13,12 +13,24 @@ export async function GET(
   try {
     await AuthService.requireUser(req, Role.EDITOR);
 
-    const status = await BatchQueueService.getBatchStatus(params.batchId);
-    if (!status) {
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+    const status = url.searchParams.get("status") || undefined;
+    const search = url.searchParams.get("search") || undefined;
+
+    const batchStatus = await BatchQueueService.getBatchStatus(params.batchId, {
+      page,
+      limit,
+      status,
+      search,
+    });
+
+    if (!batchStatus) {
       return ApiResponse.error("NOT_FOUND", `Batch not found: ${params.batchId}`, 404);
     }
 
-    return ApiResponse.success({ batch: status });
+    return ApiResponse.success({ batch: batchStatus });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to fetch batch status";
     return ApiResponse.error("FETCH_FAILED", msg, 500);

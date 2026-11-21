@@ -10,6 +10,7 @@ import { z } from "zod";
 import { createSourceReader } from "@/modules/upload-pipeline/source-reader";
 import { SchematicLoader } from "@/modules/upload-pipeline/schematic-loader";
 import { BatchQueueService } from "@/modules/upload-pipeline/batch-queue-service";
+import { getOrStartInProcessWorker } from "@/workers/batch-ingest-worker";
 import { getPrisma } from "@/lib/database/prisma";
 
 export const runtime = "nodejs";
@@ -25,39 +26,64 @@ const CreateBatchJsonSchema = z.object({
 
 /**
  * GET /api/v1/admin/batch-import
- * Lists recent batches.
+ * Lists recent batches and returns pipeline aggregate metrics.
  */
 export async function GET(req: NextRequest) {
   try {
     await AuthService.requireUser(req, Role.EDITOR);
     const db = await getPrisma();
+    const url = new URL(req.url);
+    const statusParam = url.searchParams.get("status");
 
-    const batches = await db.importBatch.findMany({
-      take: 30,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        batchId: true,
-        status: true,
-        sourceMode: true,
-        totalComics: true,
-        totalChapters: true,
-        completedChapters: true,
-        failedChapters: true,
-        totalPages: true,
-        processedPages: true,
-        totalOutputBytes: true,
-        createdAt: true,
-        finishedAt: true,
-      },
-    });
+    const where: any = {};
+    if (statusParam && statusParam !== "ALL") {
+      where.status = statusParam;
+    }
+
+    const [batches, metrics] = await Promise.all([
+      db.importBatch.findMany({
+        where,
+        take: 50,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          batchId: true,
+          status: true,
+          sourceMode: true,
+          compressionPreset: true,
+          conflictPolicy: true,
+          autoPublish: true,
+          totalComics: true,
+          totalChapters: true,
+          completedChapters: true,
+          failedChapters: true,
+          totalPages: true,
+          processedPages: true,
+          totalOutputBytes: true,
+          errorSummary: true,
+          createdAt: true,
+          finishedAt: true,
+          comicJobs: {
+            select: {
+              id: true,
+              slug: true,
+              status: true,
+            },
+          },
+        },
+      }),
+      BatchQueueService.getGlobalBatchMetrics(),
+    ]);
 
     const serialized = batches.map((b) => ({
       ...b,
       totalOutputBytes: Number(b.totalOutputBytes),
     }));
 
-    return ApiResponse.success({ batches: serialized });
+    return ApiResponse.success({
+      batches: serialized,
+      metrics,
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to list batches";
     return ApiResponse.error("FETCH_FAILED", msg, 500);
@@ -139,6 +165,9 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await BatchQueueService.createBatchJobs(graph, sourceRef, user.id);
+
+    // Automatically ensure the in-process worker is active to process the queue immediately
+    getOrStartInProcessWorker();
 
     return ApiResponse.success(
       {

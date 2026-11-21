@@ -67,6 +67,14 @@ export class BatchIngestWorker {
     }
   }
 
+  isRunningStatus(): boolean {
+    return this.isRunning;
+  }
+
+  getActiveJobCount(): number {
+    return this.activeJobs.size;
+  }
+
   async stop(): Promise<void> {
     console.log(`[BatchIngestWorker] Stopping worker ${this.workerId}... Waiting for ${this.activeJobs.size} active jobs.`);
     this.isRunning = false;
@@ -101,6 +109,32 @@ export class BatchIngestWorker {
       process.exit(1);
     });
   }
+}
+
+let activeInProcessWorker: BatchIngestWorker | null = null;
+
+/**
+ * Starts or returns the singleton in-process worker to consume queued jobs immediately.
+ */
+export function getOrStartInProcessWorker(concurrency = 2): BatchIngestWorker {
+  if (!activeInProcessWorker || !activeInProcessWorker.isRunningStatus()) {
+    activeInProcessWorker = new BatchIngestWorker({ concurrency, pollIntervalMs: 1200 });
+    activeInProcessWorker.start().catch((err) => {
+      console.error("[BatchIngestWorker] Error starting in-process worker:", err);
+    });
+  }
+  return activeInProcessWorker;
+}
+
+/**
+ * Returns current health and running status of the in-process worker.
+ */
+export function getInProcessWorkerStatus() {
+  return {
+    isRunning: activeInProcessWorker?.isRunningStatus() || false,
+    workerId: activeInProcessWorker?.workerId || null,
+    activeJobCount: activeInProcessWorker?.getActiveJobCount() || 0,
+  };
 }
 
 // If executed directly from CLI: npm run worker:ingest
