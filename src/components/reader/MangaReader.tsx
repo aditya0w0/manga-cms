@@ -100,43 +100,42 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
   const [allChapters, setAllChapters] = useState<any[]>([]);
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
   const progressDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const showControlsRef = useRef(showControls);
+  showControlsRef.current = showControls;
 
-  // Smooth scroll controller for keyboard navigation (Spacebar / PageDown / PageUp)
-  const smoothScrollRef = useRef<{
+  // Frame-rate independent continuous physics engine (exponential lerp)
+  const physicsRef = useRef<{
     animId: number | null;
     targetY: number;
-    startTime: number;
-    startY: number;
-    duration: number;
+    currentY: number;
+    lastTime: number;
+    isScrolling: boolean;
   }>({
     animId: null,
     targetY: 0,
-    startTime: 0,
-    startY: 0,
-    duration: 680,
+    currentY: 0,
+    lastTime: 0,
+    isScrolling: false,
   });
 
-  // Reading pace configuration calibrated for human eye saccades and cognitive immersion
+  // Reading pace configuration: step ratio and exponential stiffness
   const getPaceConfig = useCallback(() => {
     switch (scrollSpeed) {
       case "FAST":
         return {
           ratio: 0.65,
-          baseDuration: 420,
-          curve: "cubic" as const,
+          stiffness: 15.0, // Brisk settling in ~180ms
         };
       case "BALANCED":
         return {
           ratio: 0.52,
-          baseDuration: 560,
-          curve: "sine" as const,
+          stiffness: 11.0, // Crisp settling in ~250ms
         };
       case "IMMERSIVE":
       default:
         return {
           ratio: 0.44, // 44% screen height: leaves 56% panel context visible so the eye never loses position
-          baseDuration: 680, // 680ms gentle glide
-          curve: "sine" as const, // Sinusoidal S-curve: 0 initial jerk and smooth deceleration
+          stiffness: 8.0, // Butter-smooth continuous deceleration settling in ~350ms
         };
     }
   }, [scrollSpeed]);
@@ -144,65 +143,65 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
   const triggerSmoothScroll = useCallback((delta: number) => {
     if (typeof window === "undefined") return;
 
-    const { ratio, baseDuration, curve } = getPaceConfig();
+    const { stiffness } = getPaceConfig();
     const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-    const currentY = window.scrollY;
+    const scrollY = window.scrollY;
 
-    // Build upon current target if an animation is already in progress to avoid jarring jumps
-    const isAnimating = smoothScrollRef.current.animId !== null;
-    const base = isAnimating ? smoothScrollRef.current.targetY : currentY;
-    const targetY = Math.max(0, Math.min(base + delta, maxScroll));
+    // Accumulate onto current targetY if already in flight (continuous momentum chaining without lag)
+    const isRunning = physicsRef.current.animId !== null && physicsRef.current.isScrolling;
+    const baseTarget = isRunning ? physicsRef.current.targetY : scrollY;
+    const nextTarget = Math.max(0, Math.min(baseTarget + delta, maxScroll));
 
-    if (targetY === currentY && !isAnimating) return;
-
-    if (smoothScrollRef.current.animId !== null) {
-      cancelAnimationFrame(smoothScrollRef.current.animId);
+    physicsRef.current.targetY = nextTarget;
+    if (!isRunning) {
+      physicsRef.current.currentY = scrollY;
     }
 
-    const startY = currentY;
-    const totalDist = Math.abs(targetY - startY);
-    const nominalStep = Math.max(1, Math.round(window.innerHeight * ratio));
-    // Scale duration proportionally so multi-tap glides maintain a steady, calm cruising velocity
-    const duration = Math.min(1000, Math.max(380, Math.round((totalDist / nominalStep) * baseDuration)));
+    if (Math.abs(physicsRef.current.targetY - scrollY) < 1 && !isRunning) {
+      return;
+    }
 
-    const startTime = performance.now();
-    smoothScrollRef.current = {
-      animId: null,
-      targetY,
-      startTime,
-      startY,
-      duration,
-    };
+    physicsRef.current.lastTime = performance.now();
+    physicsRef.current.isScrolling = true;
 
-    // S-curve easing eliminates initial burst speed (v(0) = 0), matching human saccadic tracking
-    const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-    const easeFn = curve === "sine" ? easeInOutSine : easeOutCubic;
+    if (physicsRef.current.animId !== null) {
+      return; // rAF loop is already running and will smoothly consume the new targetY
+    }
 
     const step = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = easeFn(progress);
+      const dt = Math.min((currentTime - physicsRef.current.lastTime) / 1000, 0.05);
+      physicsRef.current.lastTime = currentTime;
 
-      window.scrollTo(0, startY + (targetY - startY) * eased);
+      // Frame-rate independent exponential lerp factor: 1 - exp(-stiffness * dt)
+      const factor = 1 - Math.exp(-stiffness * dt);
+      const diff = physicsRef.current.targetY - physicsRef.current.currentY;
 
-      if (progress < 1) {
-        smoothScrollRef.current.animId = requestAnimationFrame(step);
-      } else {
-        smoothScrollRef.current.animId = null;
+      if (Math.abs(diff) < 0.5) {
+        physicsRef.current.currentY = physicsRef.current.targetY;
+        window.scrollTo({ top: Math.round(physicsRef.current.targetY), behavior: "instant" });
+        physicsRef.current.animId = null;
+        physicsRef.current.isScrolling = false;
+        return;
       }
+
+      physicsRef.current.currentY += diff * factor;
+      window.scrollTo({ top: physicsRef.current.currentY, behavior: "instant" });
+      physicsRef.current.animId = requestAnimationFrame(step);
     };
 
-    smoothScrollRef.current.animId = requestAnimationFrame(step);
+    physicsRef.current.animId = requestAnimationFrame(step);
   }, [getPaceConfig]);
 
-  // Hand back scroll control immediately if user uses mouse wheel or touches screen
+  // Synchronize physics engine with manual mouse wheel, trackpad, and touch input
   useEffect(() => {
     const handleUserInterruption = () => {
-      if (smoothScrollRef.current.animId !== null) {
-        cancelAnimationFrame(smoothScrollRef.current.animId);
-        smoothScrollRef.current.animId = null;
+      if (physicsRef.current.animId !== null) {
+        cancelAnimationFrame(physicsRef.current.animId);
+        physicsRef.current.animId = null;
       }
+      physicsRef.current.isScrolling = false;
+      physicsRef.current.currentY = window.scrollY;
+      physicsRef.current.targetY = window.scrollY;
     };
 
     window.addEventListener("wheel", handleUserInterruption, { passive: true });
@@ -211,8 +210,8 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     return () => {
       window.removeEventListener("wheel", handleUserInterruption);
       window.removeEventListener("touchstart", handleUserInterruption);
-      if (smoothScrollRef.current.animId !== null) {
-        cancelAnimationFrame(smoothScrollRef.current.animId);
+      if (physicsRef.current.animId !== null) {
+        cancelAnimationFrame(physicsRef.current.animId);
       }
     };
   }, []);
@@ -294,19 +293,19 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     syncProgress(currentPage);
   }, [currentPage, preloadCount, chapter.pages, syncProgress]);
 
-  // Smooth Scrolling Configuration
+  // Prevent browser smooth-scroll collision with physics engine
   useEffect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.style.scrollBehavior = smoothScroll ? "smooth" : "auto";
+      document.documentElement.style.scrollBehavior = "auto";
     }
     return () => {
       if (typeof document !== "undefined") {
         document.documentElement.style.scrollBehavior = "";
       }
     };
-  }, [smoothScroll]);
+  }, []);
 
-  // Auto-Hide Navbar during reading
+  // Auto-Hide Navbar during reading with guarded updates (no mid-scroll re-render churn)
   useEffect(() => {
     if (!autoHideNavbar) return;
 
@@ -317,7 +316,8 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
         // Hide controls after 3.5s of reading inactivity if scrolled down
-        if (window.scrollY > 80) {
+        if (window.scrollY > 80 && showControlsRef.current) {
+          showControlsRef.current = false;
           setShowControls(false);
         }
       }, 3500);
@@ -325,14 +325,26 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
     const handleScroll = () => {
       const currentY = window.scrollY;
+
+      // Sync physics target when user manually drags scrollbar or wheels
+      if (!physicsRef.current.isScrolling) {
+        physicsRef.current.currentY = currentY;
+        physicsRef.current.targetY = currentY;
+      }
+
       const delta = currentY - lastY;
 
-      if (delta > 15 && currentY > 60) {
-        // Scrolling down: hide navbar
-        setShowControls(false);
-      } else if (delta < -15) {
-        // Scrolling up: reveal navbar
-        setShowControls(true);
+      // Guarded updates: only trigger React store dispatch on state change
+      if (delta > 20 && currentY > 60) {
+        if (showControlsRef.current) {
+          showControlsRef.current = false;
+          setShowControls(false);
+        }
+      } else if (delta < -20) {
+        if (!showControlsRef.current) {
+          showControlsRef.current = true;
+          setShowControls(true);
+        }
       }
 
       lastY = currentY;
@@ -341,7 +353,8 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
     const handleMouseMove = (e: MouseEvent) => {
       // Reveal controls when hovering near top or bottom edges
-      if (e.clientY < 90 || e.clientY > window.innerHeight - 90) {
+      if ((e.clientY < 90 || e.clientY > window.innerHeight - 90) && !showControlsRef.current) {
+        showControlsRef.current = true;
         setShowControls(true);
       }
       resetIdleTimer();
@@ -405,13 +418,13 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               if (smoothScroll) {
                 triggerSmoothScroll(-distance);
               } else {
-                window.scrollBy({ top: -distance, behavior: "auto" });
+                window.scrollBy({ top: -distance, behavior: "instant" });
               }
             } else {
               if (smoothScroll) {
                 triggerSmoothScroll(distance);
               } else {
-                window.scrollBy({ top: distance, behavior: "auto" });
+                window.scrollBy({ top: distance, behavior: "instant" });
               }
             }
           } else {
@@ -424,7 +437,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 if (smoothScroll) {
                   triggerSmoothScroll(-distance);
                 } else {
-                  window.scrollBy({ top: -distance, behavior: "auto" });
+                  window.scrollBy({ top: -distance, behavior: "instant" });
                 }
               } else {
                 prevPage();
@@ -434,7 +447,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 if (smoothScroll) {
                   triggerSmoothScroll(distance);
                 } else {
-                  window.scrollBy({ top: distance, behavior: "auto" });
+                  window.scrollBy({ top: distance, behavior: "instant" });
                 }
               } else {
                 if (isLastPage && chapter.nextChapter) {
@@ -456,7 +469,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
           if (smoothScroll) {
             triggerSmoothScroll(distance);
           } else {
-            window.scrollBy({ top: distance, behavior: "auto" });
+            window.scrollBy({ top: distance, behavior: "instant" });
           }
           break;
         }
@@ -468,7 +481,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
           if (smoothScroll) {
             triggerSmoothScroll(-distance);
           } else {
-            window.scrollBy({ top: -distance, behavior: "auto" });
+            window.scrollBy({ top: -distance, behavior: "instant" });
           }
           break;
         }
@@ -629,11 +642,12 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     <div className={`relative min-h-screen select-none ${getBgClass()} transition-colors duration-300`}>
       {/* Top Floating Control Bar */}
       <div
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out will-change-transform ${
           showControls
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none"
         }`}
+        style={{ transform: "translateZ(0)" }}
       >
         <div className="flex items-center justify-between liquid-glass-obsidian border-b border-white/[0.08] px-4 py-3 shadow-2xl backdrop-blur-md">
           <div className="flex items-center space-x-3">
@@ -702,7 +716,11 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             {chapter.pages.map((p) => {
               const hasFailed = failedImages[p.pageNumber];
               return (
-                <div key={p.id} className={`relative ${getImageScaleClass()} group flex flex-col items-center`}>
+                <div
+                  key={p.id}
+                  className={`relative ${getImageScaleClass()} group flex flex-col items-center`}
+                  style={{ contain: "layout paint" }}
+                >
                   {hasFailed ? (
                     <div className="flex flex-col items-center justify-center p-12 border border-red-500/30 rounded-lg bg-red-500/10 text-center space-y-2 w-full max-w-md">
                       <p className="text-xs text-red-400">Failed to load page {p.pageNumber}</p>
@@ -716,6 +734,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                       src={getSafeImageUrl(p.imageUrl)}
                       alt={`Page ${p.pageNumber}`}
                       loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       onError={(e) => handleImageError(e, p.pageNumber, p.imageUrl)}
                       className={`transition-opacity duration-300 ${
@@ -746,6 +765,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                   <img
                     src={getSafeImageUrl(chapter.pages[currentPage - 1].imageUrl)}
                     alt={`Page ${currentPage}`}
+                    decoding="async"
                     referrerPolicy="no-referrer"
                     onError={(e) =>
                       handleImageError(
@@ -775,6 +795,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 <img
                   src={getSafeImageUrl(chapter.pages[currentPage - 1].imageUrl)}
                   alt={`Page ${currentPage}`}
+                  decoding="async"
                   referrerPolicy="no-referrer"
                   onError={(e) =>
                     handleImageError(
@@ -794,6 +815,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 <img
                   src={getSafeImageUrl(chapter.pages[currentPage].imageUrl)}
                   alt={`Page ${currentPage + 1}`}
+                  decoding="async"
                   referrerPolicy="no-referrer"
                   onError={(e) =>
                     handleImageError(
@@ -860,9 +882,10 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
       {/* Bottom Floating Navigation & Page Controls */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out ${
+        className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out will-change-transform ${
           showControls ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"
         }`}
+        style={{ transform: "translateZ(0)" }}
       >
         <div className="flex flex-col sm:flex-row items-center justify-between liquid-glass-obsidian border-t border-white/[0.08] px-6 py-3.5 gap-3 shadow-2xl backdrop-blur-md">
           {/* Chapter Jump Buttons */}
