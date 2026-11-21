@@ -128,8 +128,11 @@ export class UserProfileService {
 
     if (data.username && data.username.trim() !== existingUser.username) {
       const cleanUsername = data.username.trim();
-      if (cleanUsername.length < 3 || cleanUsername.length > 30) {
-        throw new Error("INVALID_USERNAME: Username must be between 3 and 30 characters");
+      const usernameRegex = /^[a-zA-Z0-9_\-\.]{3,30}$/;
+      if (!usernameRegex.test(cleanUsername)) {
+        throw new Error(
+          "INVALID_USERNAME: Username must be 3-30 characters and contain only letters, numbers, underscores, hyphens, or periods"
+        );
       }
       const duplicateUsername = await db.user.findUnique({
         where: { username: cleanUsername },
@@ -160,7 +163,19 @@ export class UserProfileService {
     }
 
     if (data.avatarUrl !== undefined) {
-      updateData.avatarUrl = data.avatarUrl ? data.avatarUrl.trim() : null;
+      if (data.avatarUrl) {
+        const cleanUrl = data.avatarUrl.trim();
+        if (
+          !cleanUrl.startsWith("http://") &&
+          !cleanUrl.startsWith("https://") &&
+          !cleanUrl.startsWith("/")
+        ) {
+          throw new Error("INVALID_AVATAR_URL: Avatar URL must be a valid http, https, or relative URL");
+        }
+        updateData.avatarUrl = cleanUrl.slice(0, 1000);
+      } else {
+        updateData.avatarUrl = null;
+      }
     }
 
     return db.user.update({
@@ -187,6 +202,9 @@ export class UserProfileService {
 
     if (!newPass || newPass.length < 8) {
       throw new Error("PASSWORD_TOO_SHORT: New password must be at least 8 characters long");
+    }
+    if (newPass.length > 128) {
+      throw new Error("PASSWORD_TOO_LONG: New password cannot exceed 128 characters");
     }
 
     const user = await db.user.findUnique({
@@ -365,6 +383,14 @@ export class UserProfileService {
    */
   static async toggleBookmark(userId: string, mangaId: string) {
     const db = await getPrisma();
+
+    const targetManga = await db.manga.findFirst({
+      where: { id: mangaId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!targetManga) {
+      throw new Error("MANGA_NOT_FOUND: Target manga does not exist or has been deleted");
+    }
 
     const existing = await db.bookmark.findUnique({
       where: {
@@ -548,9 +574,43 @@ export class UserProfileService {
       return { syncedCount: 0 };
     }
 
+    // Pre-validate valid mangas and chapters to prevent foreign key crashes
+    const mangaIds = items.map((i) => i.mangaId).filter(Boolean);
+    const validMangas = await db.manga.findMany({
+      where: { id: { in: mangaIds }, deletedAt: null },
+      select: {
+        id: true,
+        chapters: {
+          select: { id: true },
+          orderBy: { chapterNumber: "asc" },
+        },
+      },
+    });
+
+    const mangaMap = new Map<string, Set<string>>();
+    const firstChapterMap = new Map<string, string>();
+
+    for (const m of validMangas) {
+      const chapterSet = new Set(m.chapters.map((c) => c.id));
+      mangaMap.set(m.id, chapterSet);
+      if (m.chapters.length > 0) {
+        firstChapterMap.set(m.id, m.chapters[0].id);
+      }
+    }
+
     let syncedCount = 0;
     for (const item of items) {
-      if (!item.mangaId || !item.chapterId) continue;
+      if (!item.mangaId || !mangaMap.has(item.mangaId)) continue;
+
+      const validChapters = mangaMap.get(item.mangaId)!;
+      let effectiveChapterId = item.chapterId;
+
+      if (!validChapters.has(effectiveChapterId)) {
+        const fallback = firstChapterMap.get(item.mangaId);
+        if (!fallback) continue;
+        effectiveChapterId = fallback;
+      }
+
       const date = item.lastReadAt ? new Date(item.lastReadAt) : new Date();
 
       await db.readingHistory.upsert({
@@ -558,7 +618,7 @@ export class UserProfileService {
           userId_mangaId: { userId, mangaId: item.mangaId },
         },
         update: {
-          chapterId: item.chapterId,
+          chapterId: effectiveChapterId,
           pageNumber: item.pageNumber || 1,
           percentRead: item.percentRead || 0,
           isCompleted: item.isCompleted || false,
@@ -567,7 +627,7 @@ export class UserProfileService {
         create: {
           userId,
           mangaId: item.mangaId,
-          chapterId: item.chapterId,
+          chapterId: effectiveChapterId,
           pageNumber: item.pageNumber || 1,
           percentRead: item.percentRead || 0,
           isCompleted: item.isCompleted || false,
@@ -703,99 +763,138 @@ export class UserProfileService {
       return null;
     };
 
+    // 0. Security cap against payload flood
+    const MAX_ENTRIES = 5000;
+    const bookmarksList = Array.isArray(backup.bookmarks) ? backup.bookmarks.slice(0, MAX_ENTRIES) : [];
+    const libraryList = Array.isArray(backup.library) ? backup.library.slice(0, MAX_ENTRIES) : [];
+    const historyList = Array.isArray(backup.history) ? backup.history.slice(0, MAX_ENTRIES) : [];
+
     // 1. Restore Bookmarks
-    if (Array.isArray(backup.bookmarks)) {
-      for (const b of backup.bookmarks) {
-        const mangaId = resolveMangaId(b);
-        if (!mangaId) continue;
-        await db.bookmark.upsert({
-          where: { userId_mangaId: { userId, mangaId } },
-          update: {},
-          create: {
-            userId,
-            mangaId,
-            createdAt: b.createdAt ? new Date(b.createdAt) : new Date(),
-          },
-        });
-        importedBookmarks++;
-      }
+    for (const b of bookmarksList) {
+      const mangaId = resolveMangaId(b);
+      if (!mangaId) continue;
+      const date = b.createdAt ? new Date(b.createdAt) : new Date();
+      await db.bookmark.upsert({
+        where: { userId_mangaId: { userId, mangaId } },
+        update: {},
+        create: {
+          userId,
+          mangaId,
+          createdAt: isNaN(date.getTime()) ? new Date() : date,
+        },
+      });
+      importedBookmarks++;
     }
 
     // 2. Restore Library
-    if (Array.isArray(backup.library)) {
-      for (const l of backup.library) {
-        const mangaId = resolveMangaId(l);
-        if (!mangaId) continue;
-        await db.userLibrary.upsert({
-          where: { userId_mangaId: { userId, mangaId } },
-          update: {
-            status: l.status || "PLAN_TO_READ",
-            score: l.score,
-            isFavorite: Boolean(l.isFavorite),
-            notes: l.notes,
-          },
-          create: {
-            userId,
-            mangaId,
-            status: l.status || "PLAN_TO_READ",
-            score: l.score,
-            isFavorite: Boolean(l.isFavorite),
-            notes: l.notes,
-          },
-        });
-        importedLibrary++;
-      }
+    const VALID_LIBRARY_STATUSES = new Set(["READING", "COMPLETED", "ON_HOLD", "PLAN_TO_READ", "DROPPED"]);
+    for (const l of libraryList) {
+      const mangaId = resolveMangaId(l);
+      if (!mangaId) continue;
+
+      const safeStatus = (l.status && VALID_LIBRARY_STATUSES.has(l.status)
+        ? l.status
+        : "PLAN_TO_READ") as LibraryStatus;
+      const safeScore =
+        typeof l.score === "number" && !isNaN(l.score)
+          ? Math.min(10, Math.max(0, l.score))
+          : null;
+      const safeNotes = typeof l.notes === "string" ? l.notes.slice(0, 2000) : null;
+
+      await db.userLibrary.upsert({
+        where: { userId_mangaId: { userId, mangaId } },
+        update: {
+          status: safeStatus,
+          score: safeScore,
+          isFavorite: Boolean(l.isFavorite),
+          notes: safeNotes,
+        },
+        create: {
+          userId,
+          mangaId,
+          status: safeStatus,
+          score: safeScore,
+          isFavorite: Boolean(l.isFavorite),
+          notes: safeNotes,
+        },
+      });
+      importedLibrary++;
     }
 
     // 3. Restore History
-    if (Array.isArray(backup.history)) {
-      for (const h of backup.history) {
-        const mangaId = resolveMangaId(h);
-        if (!mangaId) continue;
+    for (const h of historyList) {
+      const mangaId = resolveMangaId(h);
+      if (!mangaId) continue;
 
-        let chapterId = h.chapterId;
-        if (!chapterId) {
-          const firstChapter = await db.chapter.findFirst({
-            where: { mangaId },
-            orderBy: { chapterNumber: "asc" },
-            select: { id: true },
-          });
-          if (firstChapter) chapterId = firstChapter.id;
-        }
-
-        if (!chapterId) continue;
-
-        await db.readingHistory.upsert({
-          where: { userId_mangaId: { userId, mangaId } },
-          update: {
-            chapterId,
-            pageNumber: h.pageNumber || 1,
-            percentRead: h.percentRead || 0,
-            isCompleted: Boolean(h.isCompleted),
-            lastReadAt: h.lastReadAt ? new Date(h.lastReadAt) : new Date(),
-          },
-          create: {
-            userId,
-            mangaId,
-            chapterId,
-            pageNumber: h.pageNumber || 1,
-            percentRead: h.percentRead || 0,
-            isCompleted: Boolean(h.isCompleted),
-            lastReadAt: h.lastReadAt ? new Date(h.lastReadAt) : new Date(),
-          },
+      let chapterId = h.chapterId;
+      if (chapterId) {
+        // Verify chapterId belongs to mangaId
+        const ch = await db.chapter.findFirst({
+          where: { id: chapterId, mangaId },
+          select: { id: true },
         });
-        importedHistory++;
+        if (!ch) chapterId = undefined;
       }
+
+      if (!chapterId) {
+        const firstChapter = await db.chapter.findFirst({
+          where: { mangaId },
+          orderBy: { chapterNumber: "asc" },
+          select: { id: true },
+        });
+        if (firstChapter) chapterId = firstChapter.id;
+      }
+
+      if (!chapterId) continue;
+
+      const date = h.lastReadAt ? new Date(h.lastReadAt) : new Date();
+
+      await db.readingHistory.upsert({
+        where: { userId_mangaId: { userId, mangaId } },
+        update: {
+          chapterId,
+          pageNumber: Math.max(1, h.pageNumber || 1),
+          percentRead: Math.min(100, Math.max(0, h.percentRead || 0)),
+          isCompleted: Boolean(h.isCompleted),
+          lastReadAt: isNaN(date.getTime()) ? new Date() : date,
+        },
+        create: {
+          userId,
+          mangaId,
+          chapterId,
+          pageNumber: Math.max(1, h.pageNumber || 1),
+          percentRead: Math.min(100, Math.max(0, h.percentRead || 0)),
+          isCompleted: Boolean(h.isCompleted),
+          lastReadAt: isNaN(date.getTime()) ? new Date() : date,
+        },
+      });
+      importedHistory++;
     }
 
-    // 4. Restore Preferences
+    // 4. Restore Preferences (whitelisted fields only)
     if (backup.preferences && typeof backup.preferences === "object") {
-      const { id, userId: _, ...prefFields } = backup.preferences;
-      await db.readerPreference.upsert({
-        where: { userId },
-        update: prefFields,
-        create: { userId, ...prefFields },
-      });
+      const allowedPrefKeys = [
+        "readingMode",
+        "readingDirection",
+        "imageScaling",
+        "backgroundColor",
+        "pageGap",
+        "preloadCount",
+        "showPageNumbers",
+      ];
+      const validPref: Record<string, any> = {};
+      for (const k of allowedPrefKeys) {
+        if (k in backup.preferences && backup.preferences[k] !== undefined) {
+          validPref[k] = backup.preferences[k];
+        }
+      }
+      if (Object.keys(validPref).length > 0) {
+        await db.readerPreference.upsert({
+          where: { userId },
+          update: validPref,
+          create: { userId, ...validPref },
+        });
+      }
     }
 
     return {

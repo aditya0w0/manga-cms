@@ -46,9 +46,10 @@ export async function POST(req: NextRequest) {
     const result = await UserProfileService.toggleBookmark(user.id, body.mangaId);
     return NextResponse.json(result);
   } catch (err: any) {
+    const status = err.message?.includes("MANGA_NOT_FOUND") ? 404 : 500;
     return NextResponse.json(
       { error: err.message || "Failed to toggle bookmark" },
-      { status: 500 }
+      { status }
     );
   }
 }

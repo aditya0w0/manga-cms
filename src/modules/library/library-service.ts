@@ -68,6 +68,14 @@ export async function updateLibraryEntry(
 ) {
   const db = await getPrisma();
 
+  const manga = await db.manga.findFirst({
+    where: { id: mangaId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!manga) {
+    throw new Error("MANGA_NOT_FOUND: Target manga does not exist or has been deleted");
+  }
+
   return db.userLibrary.upsert({
     where: {
       userId_mangaId: { userId, mangaId },

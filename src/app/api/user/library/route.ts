@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const statusParam = searchParams.get("status");
-    const status = statusParam && statusParam !== "ALL" && statusParam !== "FAVORITES"
+    const VALID_LIBRARY_STATUSES = new Set(["READING", "COMPLETED", "ON_HOLD", "PLAN_TO_READ", "DROPPED"]);
+    const status = statusParam && VALID_LIBRARY_STATUSES.has(statusParam)
       ? (statusParam as LibraryStatus)
       : undefined;
     const isFavoriteOnly = statusParam === "FAVORITES";
@@ -127,16 +128,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "mangaId is required" }, { status: 400 });
     }
 
+    const VALID_LIBRARY_STATUSES = new Set(["READING", "COMPLETED", "ON_HOLD", "PLAN_TO_READ", "DROPPED"]);
+    const safeStatus = status && VALID_LIBRARY_STATUSES.has(status) ? (status as LibraryStatus) : undefined;
+    const safeScore =
+      score !== undefined && score !== null && !isNaN(Number(score))
+        ? Math.min(10, Math.max(0, Number(score)))
+        : undefined;
+    const safeNotes = typeof notes === "string" ? notes.slice(0, 2000) : undefined;
+
     const entry = await updateLibraryEntry(user.id, mangaId, {
-      status,
-      score: score !== undefined ? Number(score) : undefined,
+      status: safeStatus,
+      score: safeScore,
       isFavorite,
-      notes,
+      notes: safeNotes,
     });
 
     return NextResponse.json({ success: true, entry });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to update library" }, { status: 500 });
+    const statusCode = err.message?.includes("MANGA_NOT_FOUND") ? 404 : 500;
+    return NextResponse.json({ error: err.message || "Failed to update library" }, { status: statusCode });
   }
 }
 
