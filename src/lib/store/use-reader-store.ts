@@ -20,6 +20,8 @@ interface ReaderState {
   zoomLevel: number;
   showControls: boolean;
   isFullscreen: boolean;
+  smoothScroll: boolean;
+  autoHideNavbar: boolean;
 
   // Actions
   setReadingMode: (mode: ReadingMode) => void;
@@ -28,6 +30,8 @@ interface ReaderState {
   setBackgroundColor: (bg: ReaderBg) => void;
   setPageGap: (gap: number) => void;
   setShowPageNumbers: (show: boolean) => void;
+  setSmoothScroll: (enabled: boolean) => void;
+  setAutoHideNavbar: (enabled: boolean) => void;
   setCurrentPage: (page: number) => void;
   setTotalPages: (total: number) => void;
   nextPage: () => void;
@@ -55,6 +59,8 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   zoomLevel: 1,
   showControls: true,
   isFullscreen: false,
+  smoothScroll: true,
+  autoHideNavbar: true,
 
   setReadingMode: (mode) => {
     set({ readingMode: mode });
@@ -78,6 +84,14 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   },
   setShowPageNumbers: (show) => {
     set({ showPageNumbers: show });
+    get().savePreferences();
+  },
+  setSmoothScroll: (enabled) => {
+    set({ smoothScroll: enabled });
+    get().savePreferences();
+  },
+  setAutoHideNavbar: (enabled) => {
+    set({ autoHideNavbar: enabled });
     get().savePreferences();
   },
   setCurrentPage: (page) => {
@@ -138,6 +152,8 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
             pageGap: data.preference.pageGap || 12,
             preloadCount: data.preference.preloadCount || 2,
             showPageNumbers: data.preference.showPageNumbers ?? false,
+            smoothScroll: data.preference.smoothScroll ?? true,
+            autoHideNavbar: data.preference.autoHideNavbar ?? true,
           });
         }
       }
@@ -154,6 +170,8 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
       pageGap: state.pageGap,
       preloadCount: state.preloadCount,
       showPageNumbers: state.showPageNumbers,
+      smoothScroll: state.smoothScroll,
+      autoHideNavbar: state.autoHideNavbar,
     };
 
     try {

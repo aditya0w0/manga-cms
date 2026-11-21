@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import {
   getFeaturedManga,
   getTrendingManga,
@@ -157,6 +158,38 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* 6. Empty State Fallback if Catalog is Unpopulated */}
+      {featured.length === 0 &&
+        trending.length === 0 &&
+        recentlyUpdated.length === 0 &&
+        topRated.items.length === 0 && (
+          <section className="py-24 text-center space-y-4 rounded-3xl liquid-glass liquid-glass-glare border border-white/10 p-8">
+            <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl liquid-glass text-sky-400 border border-white/20 shadow-lg">
+              <BookOpen className="h-7 w-7" />
+            </div>
+            <div className="space-y-1.5 max-w-md mx-auto">
+              <h2 className="text-xl font-bold text-foreground">Catalog In Setup</h2>
+              <p className="text-xs text-muted-foreground">
+                No published titles are currently indexed. Add or import titles via the batch ingestion pipeline to populate the catalog.
+              </p>
+            </div>
+            <div className="pt-2 flex items-center justify-center gap-3">
+              <Link
+                href="/admin/batch-upload"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold liquid-glass-btn-primary shadow-md"
+              >
+                Batch Ingestion
+              </Link>
+              <Link
+                href="/browse"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold liquid-glass-chip text-slate-300 hover:text-white"
+              >
+                Browse Library
+              </Link>
+            </div>
+          </section>
+        )}
     </div>
   );
 }

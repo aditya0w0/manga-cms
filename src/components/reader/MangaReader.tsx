@@ -64,12 +64,16 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     zoomLevel,
     showControls,
     isFullscreen,
+    smoothScroll,
+    autoHideNavbar,
     setReadingMode,
     setReadingDirection,
     setImageScaling,
     setBackgroundColor,
     setPageGap,
     setShowPageNumbers,
+    setSmoothScroll,
+    setAutoHideNavbar,
     setCurrentPage,
     setTotalPages,
     nextPage,
@@ -78,6 +82,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     zoomOut,
     resetZoom,
     toggleControls,
+    setShowControls,
     toggleFullscreen,
     loadPreferences,
   } = useReaderStore();
@@ -155,7 +160,71 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     syncProgress(currentPage);
   }, [currentPage, preloadCount, chapter.pages, syncProgress]);
 
-  // Global Keyboard Navigation
+  // Smooth Scrolling Configuration
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.scrollBehavior = smoothScroll ? "smooth" : "auto";
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.documentElement.style.scrollBehavior = "";
+      }
+    };
+  }, [smoothScroll]);
+
+  // Auto-Hide Navbar during reading
+  useEffect(() => {
+    if (!autoHideNavbar) return;
+
+    let lastY = window.scrollY;
+    let idleTimer: NodeJS.Timeout | null = null;
+
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        // Hide controls after 3.5s of reading inactivity if scrolled down
+        if (window.scrollY > 80) {
+          setShowControls(false);
+        }
+      }, 3500);
+    };
+
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastY;
+
+      if (delta > 15 && currentY > 60) {
+        // Scrolling down: hide navbar
+        setShowControls(false);
+      } else if (delta < -15) {
+        // Scrolling up: reveal navbar
+        setShowControls(true);
+      }
+
+      lastY = currentY;
+      resetIdleTimer();
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Reveal controls when hovering near top or bottom edges
+      if (e.clientY < 90 || e.clientY > window.innerHeight - 90) {
+        setShowControls(true);
+      }
+      resetIdleTimer();
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    resetIdleTimer();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (idleTimer) clearTimeout(idleTimer);
+    };
+  }, [autoHideNavbar, setShowControls]);
+
+  // Global Keyboard Navigation (with Arrow Support for Next/Prev Chapters)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in input or textarea
@@ -163,13 +232,50 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
         return;
       }
 
+      const isRTL = readingDirection === "RTL";
+      const isPaginated = readingMode === "SINGLE_PAGE" || readingMode === "DOUBLE_PAGE";
+      const isLastPage = isPaginated && currentPage >= chapter.pages.length;
+      const isFirstPage = isPaginated && currentPage <= 1;
+
       switch (e.key) {
         case "ArrowRight":
-          readingDirection === "RTL" ? prevPage() : nextPage();
+          if (isRTL) {
+            if (isFirstPage && chapter.prevChapter) {
+              router.push(`/read/${chapter.prevChapter.id}`);
+            } else {
+              prevPage();
+            }
+          } else {
+            if (isLastPage && chapter.nextChapter) {
+              router.push(`/read/${chapter.nextChapter.id}`);
+            } else if (!isPaginated && chapter.nextChapter) {
+              router.push(`/read/${chapter.nextChapter.id}`);
+            } else {
+              nextPage();
+            }
+          }
           break;
+
         case "ArrowLeft":
-          readingDirection === "RTL" ? nextPage() : prevPage();
+          if (isRTL) {
+            if (isLastPage && chapter.nextChapter) {
+              router.push(`/read/${chapter.nextChapter.id}`);
+            } else if (!isPaginated && chapter.nextChapter) {
+              router.push(`/read/${chapter.nextChapter.id}`);
+            } else {
+              nextPage();
+            }
+          } else {
+            if (isFirstPage && chapter.prevChapter) {
+              router.push(`/read/${chapter.prevChapter.id}`);
+            } else if (!isPaginated && chapter.prevChapter) {
+              router.push(`/read/${chapter.prevChapter.id}`);
+            } else {
+              prevPage();
+            }
+          }
           break;
+
         case "f":
         case "F":
           toggleFullscreen();
@@ -195,6 +301,9 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     readingDirection,
+    readingMode,
+    currentPage,
+    chapter.pages.length,
     nextPage,
     prevPage,
     toggleFullscreen,
@@ -424,6 +533,54 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             )}
           </div>
         )}
+
+        {/* End of Chapter Navigation Card */}
+        <div className="w-full max-w-2xl mx-auto px-4 pt-10 pb-6 flex flex-col items-center text-center space-y-3">
+          <div className="p-6 rounded-2xl liquid-glass-obsidian border border-white/10 shadow-2xl w-full space-y-3">
+            <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
+              End of Chapter {chapter.chapterNumber}
+            </span>
+            <h3 className="text-base font-bold text-foreground">
+              {chapter.nextChapter
+                ? `Next Chapter: Chapter ${chapter.nextChapter.chapterNumber}`
+                : "You have reached the latest chapter"}
+            </h3>
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+              {chapter.prevChapter && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/read/${chapter.prevChapter!.id}`)}
+                  className="gap-1.5 text-xs text-slate-300 border-slate-700 hover:bg-slate-800"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Prev Chapter
+                </Button>
+              )}
+              {chapter.nextChapter ? (
+                <Button
+                  size="sm"
+                  onClick={() => router.push(`/read/${chapter.nextChapter!.id}`)}
+                  className="gap-1.5 text-xs liquid-glass-btn-primary font-bold shadow-md"
+                >
+                  Read Chapter {chapter.nextChapter.chapterNumber}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Link href={`/manga/${chapter.manga.slug}`}>
+                  <Button size="sm" variant="outline" className="text-xs border-slate-700 text-slate-300">
+                    Series Overview
+                  </Button>
+                </Link>
+              )}
+            </div>
+            {chapter.nextChapter && (
+              <p className="text-[11px] text-slate-400 font-mono pt-1">
+                Press <kbd className="px-1.5 py-0.5 rounded bg-black/40 border border-white/15 text-white font-mono">Arrow Right</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-black/40 border border-white/15 text-white font-mono">D</kbd> for next chapter
+              </p>
+            )}
+          </div>
+        </div>
       </main>
 
       {/* Bottom Floating Navigation & Page Controls */}
@@ -644,6 +801,42 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             </button>
           </div>
 
+          {/* Smooth Scrolling Toggle */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+            <div>
+              <div className="text-xs font-semibold text-slate-200">Smooth Scrolling</div>
+              <p className="text-[11px] text-slate-400">Fluid vertical transitions during reading</p>
+            </div>
+            <button
+              onClick={() => setSmoothScroll(!smoothScroll)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
+                smoothScroll
+                  ? "border-sky-500 bg-sky-500/15 text-sky-300"
+                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
+              }`}
+            >
+              {smoothScroll ? "Smooth" : "Instant"}
+            </button>
+          </div>
+
+          {/* Auto-Hide Navbar Toggle */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+            <div>
+              <div className="text-xs font-semibold text-slate-200">Auto-Hide Navbar</div>
+              <p className="text-[11px] text-slate-400">Immersive reading with auto-hiding navigation bars</p>
+            </div>
+            <button
+              onClick={() => setAutoHideNavbar(!autoHideNavbar)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
+                autoHideNavbar
+                  ? "border-sky-500 bg-sky-500/15 text-sky-300"
+                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
+              }`}
+            >
+              {autoHideNavbar ? "Auto-Hide" : "Sticky"}
+            </button>
+          </div>
+
           {/* Page Gap Slider (for continuous mode) */}
           {(readingMode === "VERTICAL_SCROLL" || readingMode === "WEBTOON") && (
             <div>
@@ -668,7 +861,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
           <div className="pt-2 border-t border-border/60">
             <h5 className="font-bold text-foreground mb-1">Keyboard Shortcuts</h5>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-              <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">← / →</kbd> Next/Prev Page</div>
+              <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">← / →</kbd> Page or Chapter</div>
               <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">F</kbd> Fullscreen</div>
               <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">H</kbd> Hide/Show UI</div>
               <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">A / D</kbd> Prev/Next Chapter</div>

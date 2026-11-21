@@ -101,11 +101,12 @@ export async function initPrisma(): Promise<PrismaClient> {
         pglite = new PGlite(dataDir);
         await pglite.waitReady;
       } catch (bootErr) {
-        console.warn("[DB] Data store was interrupted or encountered WAL corruption, self-healing...", bootErr);
-        try {
-          fs.rmSync(dataDir, { recursive: true, force: true });
-          fs.mkdirSync(dataDir, { recursive: true });
-        } catch {}
+        console.warn("[DB] Retrying PGlite connection after cleaning lock...", bootErr);
+        if (fs.existsSync(pidFile)) {
+          try {
+            fs.unlinkSync(pidFile);
+          } catch {}
+        }
         pglite = new PGlite(dataDir);
         await pglite.waitReady;
       }
