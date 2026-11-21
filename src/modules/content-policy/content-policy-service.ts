@@ -385,6 +385,7 @@ export class ContentPolicyService {
     }
 
     // 5. Visual AI Evaluation using WD Tagger (RTX 4070 pass-through)
+    // Acts as an observational signal that feeds Human In The Loop quarantine rather than automated bans
     let visualClassification: WdClassificationResult | undefined;
     let hitlRequired = false;
 
@@ -392,22 +393,11 @@ export class ContentPolicyService {
       try {
         visualClassification = await WdTaggerService.classifyImage(input.coverUrl);
 
-        if (visualClassification.recommendation === "REJECT_AUTO") {
-          for (const v of visualClassification.matchedViolations) {
-            violations.push({
-              category: v.category || "Visual AI Policy Violation",
-              matchedTerm: `${v.tag} (${(v.confidence * 100).toFixed(0)}%)`,
-              sourceField: "Visual AI (WD Tagger)",
-            });
-          }
-          if (violations.length === 0) {
-            violations.push({
-              category: "Explicit Sexual Content",
-              matchedTerm: `explicit rating: ${(visualClassification.rating.explicit * 100).toFixed(0)}%`,
-              sourceField: "Visual AI (WD Tagger Rating)",
-            });
-          }
-        } else if (visualClassification.recommendation === "QUARANTINE_HITL") {
+        if (
+          visualClassification.recommendation === "QUARANTINE_HITL" ||
+          visualClassification.hitlRequired ||
+          visualClassification.matchedViolations.length > 0
+        ) {
           hitlRequired = true;
         }
       } catch (tagErr) {
@@ -416,7 +406,7 @@ export class ContentPolicyService {
     }
 
     // Decision Logic:
-    // If ANY prohibited violation is found -> STRICT REJECTION
+    // If ANY definitive metadata violation is found in title, genre, or provider metadata -> STRICT REJECTION
     if (violations.length > 0) {
       const uniqueCategories = Array.from(new Set(violations.map((v) => v.category)));
       const reason = `Contains prohibited content: [${uniqueCategories.join(", ")}] (matched: "${violations[0].matchedTerm}" in ${violations[0].sourceField})`;
@@ -431,12 +421,12 @@ export class ContentPolicyService {
       };
     }
 
-    // If WD Tagger flagged borderline rating or tags -> Human In The Loop quarantine to prevent false flag!
+    // If WD Tagger flagged artwork via visual signal -> Human In The Loop quarantine to prevent false flag!
     if (hitlRequired && visualClassification) {
       return {
         allowed: true,
         action: "QUARANTINE",
-        reason: visualClassification.reason || "Borderline artwork detected by WD Tagger. Quarantined for Human In The Loop review.",
+        reason: visualClassification.reason || "Artwork flagged by Visual AI classifier. Quarantined for Human In The Loop review.",
         violations: [],
         visualClassification,
         hitlRequired: true,

@@ -195,18 +195,19 @@ describe("Human In The Loop (HITL) Visual Review Lifecycle : Integration Tests",
     expect(foundInPublic).toBeUndefined();
   });
 
-  it("auto-rejects explicit artwork covers without creating catalog entries", async () => {
-    // Explicit cover triggers REJECT_AUTO in WD Tagger
+  it("routes explicit visual artwork signals to QUARANTINE with HITL review rather than automated rejection", async () => {
+    // Explicit cover triggers observational visual AI signal routed to HITL quarantine
     const check = await ContentPolicyService.evaluateMangaContent({
       title: "Hardcore Smut Series",
       genres: ["Romance"],
       coverUrl: "https://example.com/explicit_cover.jpg",
     });
 
-    expect(check.allowed).toBe(false);
-    expect(check.action).toBe("REJECT");
-    expect(check.violations.length).toBeGreaterThanOrEqual(1);
-    expect(check.violations.some((v) => v.sourceField.includes("WD Tagger"))).toBe(true);
+    expect(check.allowed).toBe(true);
+    expect(check.action).toBe("QUARANTINE");
+    expect(check.hitlRequired).toBe(true);
+    expect(check.visualClassification).toBeDefined();
+    expect(check.visualClassification?.recommendation).toBe("QUARANTINE_HITL");
   });
 
   afterAll(async () => {

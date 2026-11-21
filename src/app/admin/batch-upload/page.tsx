@@ -1,34 +1,27 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import {
   FolderArchive,
   Activity,
   CheckCircle2,
-  AlertTriangle,
   RotateCcw,
   Ban,
-  Clock,
   HardDrive,
   Layers,
-  ChevronDown,
-  ChevronUp,
   Search,
   Plus,
   Play,
-  Cpu,
   RefreshCw,
-  ExternalLink,
   ShieldCheck,
-  FileText,
   X,
-  ArrowRight,
+  FileCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
 import { BatchChapterUploadModal } from "@/components/admin/BatchChapterUploadModal";
+import { BatchSchematicModal } from "@/components/admin/BatchSchematicModal";
 
 interface BatchItem {
   id: string;
@@ -144,8 +137,9 @@ export default function AdminBatchUploadDashboardPage() {
   const [actionNotice, setActionNotice] = useState<string>("");
   const [isActionBusy, setIsActionBusy] = useState(false);
 
-  // Upload Modal State
+  // Upload & Schematic Modal State
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [mangaList, setMangaList] = useState<Array<{ id: string; title: string; slug: string }>>([]);
   const [selectedMangaId, setSelectedMangaId] = useState("");
 
@@ -377,6 +371,17 @@ export default function AdminBatchUploadDashboardPage() {
           >
             <Play className="h-3.5 w-3.5 text-emerald-400" />
             Start Worker
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setIsTemplateModalOpen(true)}
+            className="h-8 text-xs gap-1.5 border-slate-700 text-slate-200 hover:bg-slate-800"
+            title="View batch schematic templates and download starter bundle"
+          >
+            <FileCode className="h-3.5 w-3.5 text-sky-400" />
+            Schematic Templates
           </Button>
 
           <Button
@@ -706,9 +711,30 @@ export default function AdminBatchUploadDashboardPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-muted-foreground space-y-2">
-                    <p className="font-semibold text-foreground">No batch ingestion jobs found</p>
-                    <p className="text-xs">Upload an archive or directory to begin bulk comic ingestion.</p>
+                  <td colSpan={7} className="py-16 text-center text-muted-foreground space-y-3">
+                    <p className="font-semibold text-foreground text-sm">No batch ingestion jobs found</p>
+                    <p className="text-xs max-w-sm mx-auto text-slate-400">
+                      Upload a CBZ archive, multi-file set, or directory to begin bulk chapter and multi-comic ingestion.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        onClick={() => setIsUploadOpen(true)}
+                        className="h-8 text-xs gap-1.5 liquid-glass-btn-primary font-bold shadow-md"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Upload New Batch
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsTemplateModalOpen(true)}
+                        className="h-8 text-xs gap-1.5 border-slate-700 text-slate-200 hover:bg-slate-800"
+                      >
+                        <FileCode className="h-3.5 w-3.5 text-sky-400" />
+                        View Schematic Templates
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -966,6 +992,12 @@ export default function AdminBatchUploadDashboardPage() {
           }}
         />
       )}
+
+      {/* Schematic Templates & Spec Modal */}
+      <BatchSchematicModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+      />
     </div>
   );
 }

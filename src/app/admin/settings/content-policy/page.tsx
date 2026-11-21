@@ -152,6 +152,16 @@ export default function ContentPolicyAdminPage() {
   >("categories");
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (
+        tabParam &&
+        ["categories", "config", "scan", "quarantine", "hitl", "tagger", "rejections"].includes(tabParam)
+      ) {
+        setActiveTab(tabParam as any);
+      }
+    }
     fetchPolicyData();
   }, []);
 

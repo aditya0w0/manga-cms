@@ -350,45 +350,33 @@ export class WdTaggerService {
     let hitlRequired = false;
     let reason: string | undefined;
 
-    // 1. Explicit rating check
-    if (rating.explicit >= cfg.autoRejectThreshold) {
-      recommendation = "REJECT_AUTO";
-      hitlRequired = false;
-      reason = `Explicit artwork detected (explicit score: ${(rating.explicit * 100).toFixed(1)}%)`;
-    } else if (
+    // 1. Explicit rating check: treats adult ratings as visual signals for Human In The Loop quarantine
+    if (
       rating.explicit >= cfg.explicitRatingThreshold ||
       rating.questionable >= cfg.questionableRatingThreshold
     ) {
       recommendation = "QUARANTINE_HITL";
       hitlRequired = true;
-      reason = `Borderline adult artwork rating (questionable: ${(rating.questionable * 100).toFixed(1)}%, explicit: ${(rating.explicit * 100).toFixed(1)}%). Requires Human In The Loop review.`;
+      reason = `Elevated adult artwork rating (questionable: ${(rating.questionable * 100).toFixed(1)}%, explicit: ${(rating.explicit * 100).toFixed(1)}%). Quarantined for Human In The Loop review.`;
     }
 
     // 2. Prohibited visual tags check (Yaoi, BL, Yuri, GL, Smut, Hentai)
+    // Visual AI acts as an observational signal rather than an automated ban.
     if (matchedViolations.length > 0) {
       const highestConfidence = Math.max(...matchedViolations.map((v) => v.confidence));
       const topViolation = matchedViolations.find((v) => v.confidence === highestConfidence)!;
 
+      recommendation = "QUARANTINE_HITL";
+      hitlRequired = true;
       if (highestConfidence >= cfg.autoRejectThreshold) {
-        recommendation = "REJECT_AUTO";
-        hitlRequired = false;
-        if (rating.explicit >= cfg.autoRejectThreshold) {
-          reason = `Explicit artwork detected (explicit: ${(rating.explicit * 100).toFixed(1)}%) & Visual AI detected: [${topViolation.category}] ("${topViolation.tag}", ${(highestConfidence * 100).toFixed(1)}%)`;
-        } else {
-          reason = `Visual AI detected prohibited content: [${topViolation.category}] (tag: "${topViolation.tag}", confidence: ${(highestConfidence * 100).toFixed(1)}%)`;
-        }
-      } else if (recommendation !== "REJECT_AUTO") {
-        // Borderline tag detection -> Human In The Loop to prevent false flag!
-        recommendation = "QUARANTINE_HITL";
-        hitlRequired = true;
+        reason = `High-confidence visual flag: [${topViolation.category}] (tag: "${topViolation.tag}", confidence: ${(highestConfidence * 100).toFixed(1)}%). Quarantined for Human In The Loop verification.`;
+      } else {
         reason = `Potential visual violation: [${topViolation.category}] (tag: "${topViolation.tag}", confidence: ${(highestConfidence * 100).toFixed(1)}%). Quarantined for Human In The Loop verification.`;
       }
     }
 
-    // Strict invariant: REJECT_AUTO never requires HITL
-    if (recommendation === "REJECT_AUTO") {
-      hitlRequired = false;
-    }
+    // Strict invariant: QUARANTINE_HITL always requires HITL
+    hitlRequired = recommendation === "QUARANTINE_HITL";
 
     return {
       imageUrl,

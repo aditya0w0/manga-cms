@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   BookOpen,
@@ -45,7 +45,8 @@ const navigationSections: NavSection[] = [
   {
     title: "Moderation",
     items: [
-      { name: "Content Policy", href: "/admin/settings/content-policy", icon: ShieldAlert },
+      { name: "Review Queue", href: "/admin/settings/content-policy?tab=hitl", icon: ShieldAlert },
+      { name: "Content Policy", href: "/admin/settings/content-policy", icon: Shield },
       { name: "Reports", href: "/admin/reports", icon: Flag },
       { name: "Audit Logs", href: "/admin/audit-logs", icon: FileText },
     ],
@@ -65,10 +66,12 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams?.get("tab");
 
   useEffect(() => {
     if (onClose) onClose();
-  }, [pathname]);
+  }, [pathname, currentTab, onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -130,10 +133,15 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
 
               {sec.items.map((item) => {
                 const Icon = item.icon;
-                const isActive =
-                  item.href === "/admin"
+                const [itemPath, itemQuery] = item.href.split("?");
+                const hasHitlQuery = itemQuery?.includes("tab=hitl");
+                const isBaseMatch =
+                  itemPath === "/admin"
                     ? pathname === "/admin"
-                    : pathname.startsWith(item.href);
+                    : pathname.startsWith(itemPath);
+                const isActive = hasHitlQuery
+                  ? isBaseMatch && currentTab === "hitl"
+                  : isBaseMatch && (!itemPath.includes("/content-policy") || currentTab !== "hitl");
 
                 return (
                   <Link

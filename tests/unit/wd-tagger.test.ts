@@ -65,23 +65,23 @@ describe("WaifuDiffusion Tagger & HITL Decision Engine : Unit Tests", () => {
     expect(result.matchedViolations[0].category).toBe("BL (Boys' Love)");
   });
 
-  it("auto-rejects when model confidence reaches hard rejection threshold (>= 0.85)", () => {
+  it("routes high-confidence prohibited visual flags to Human In The Loop quarantine rather than automated bans", () => {
     const result = WdTaggerService.interpretRawModelOutput(
       "https://example.com/bl_explicit_cover.jpg",
       { general: 0.05, sensitive: 0.15, questionable: 0.70, explicit: 0.10 },
       [
-        { tag: "boys_love", confidence: 0.92 }, // Overwhelming confidence
+        { tag: "boys_love", confidence: 0.92 }, // High confidence visual signal
         { tag: "yaoi", confidence: 0.88 },
       ],
       DEFAULT_WD_CONFIG
     );
 
-    expect(result.recommendation).toBe("REJECT_AUTO");
-    expect(result.hitlRequired).toBe(false);
-    expect(result.reason).toContain("Visual AI detected prohibited content");
+    expect(result.recommendation).toBe("QUARANTINE_HITL");
+    expect(result.hitlRequired).toBe(true);
+    expect(result.reason).toContain("High-confidence visual flag");
   });
 
-  it("auto-rejects when explicit rating reaches hard threshold (>= 0.85)", () => {
+  it("routes high explicit rating to Human In The Loop quarantine rather than automated bans", () => {
     const result = WdTaggerService.interpretRawModelOutput(
       "https://example.com/explicit_nsfw.jpg",
       { general: 0.0, sensitive: 0.05, questionable: 0.05, explicit: 0.90 },
@@ -89,11 +89,12 @@ describe("WaifuDiffusion Tagger & HITL Decision Engine : Unit Tests", () => {
       DEFAULT_WD_CONFIG
     );
 
-    expect(result.recommendation).toBe("REJECT_AUTO");
-    expect(result.reason).toContain("Explicit artwork detected");
+    expect(result.recommendation).toBe("QUARANTINE_HITL");
+    expect(result.hitlRequired).toBe(true);
+    expect(result.reason).toContain("Quarantined for Human In The Loop verification");
   });
 
-  it("routes questionable adult rating (>= 0.65) to HITL review", () => {
+  it("routes elevated adult rating to Human In The Loop review", () => {
     const result = WdTaggerService.interpretRawModelOutput(
       "https://example.com/borderline_cover.jpg",
       { general: 0.15, sensitive: 0.15, questionable: 0.68, explicit: 0.02 },
@@ -103,7 +104,7 @@ describe("WaifuDiffusion Tagger & HITL Decision Engine : Unit Tests", () => {
 
     expect(result.recommendation).toBe("QUARANTINE_HITL");
     expect(result.hitlRequired).toBe(true);
-    expect(result.reason).toContain("Borderline adult artwork rating");
+    expect(result.reason).toContain("Elevated adult artwork rating");
   });
 
   it("micro-batches parallel classifyImage requests within the wait window", async () => {
