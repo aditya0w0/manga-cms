@@ -6,6 +6,7 @@ export type ReadingMode = "VERTICAL_SCROLL" | "SINGLE_PAGE" | "DOUBLE_PAGE" | "W
 export type ReadingDirection = "LTR" | "RTL" | "VERTICAL";
 export type ImageScaling = "FIT_WIDTH" | "FIT_HEIGHT" | "ORIGINAL";
 export type ReaderBg = "DARK" | "BLACK" | "GRAY" | "LIGHT";
+export type ScrollPace = "IMMERSIVE" | "BALANCED" | "FAST";
 
 interface ReaderState {
   readingMode: ReadingMode;
@@ -22,6 +23,7 @@ interface ReaderState {
   isFullscreen: boolean;
   smoothScroll: boolean;
   autoHideNavbar: boolean;
+  scrollSpeed: ScrollPace;
 
   // Actions
   setReadingMode: (mode: ReadingMode) => void;
@@ -32,6 +34,7 @@ interface ReaderState {
   setShowPageNumbers: (show: boolean) => void;
   setSmoothScroll: (enabled: boolean) => void;
   setAutoHideNavbar: (enabled: boolean) => void;
+  setScrollSpeed: (speed: ScrollPace) => void;
   setCurrentPage: (page: number) => void;
   setTotalPages: (total: number) => void;
   nextPage: () => void;
@@ -61,6 +64,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   isFullscreen: false,
   smoothScroll: true,
   autoHideNavbar: true,
+  scrollSpeed: "IMMERSIVE",
 
   setReadingMode: (mode) => {
     set({ readingMode: mode });
@@ -92,6 +96,10 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   },
   setAutoHideNavbar: (enabled) => {
     set({ autoHideNavbar: enabled });
+    get().savePreferences();
+  },
+  setScrollSpeed: (speed) => {
+    set({ scrollSpeed: speed });
     get().savePreferences();
   },
   setCurrentPage: (page) => {
@@ -138,6 +146,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
           ...state,
           ...parsed,
           pageGap: typeof parsed.pageGap === "number" ? parsed.pageGap : state.pageGap,
+          scrollSpeed: parsed.scrollSpeed ?? state.scrollSpeed ?? "IMMERSIVE",
         }));
       }
     } catch {}
@@ -158,6 +167,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
             showPageNumbers: typeof data.preference.showPageNumbers === "boolean" ? data.preference.showPageNumbers : state.showPageNumbers,
             smoothScroll: typeof data.preference.smoothScroll === "boolean" ? data.preference.smoothScroll : state.smoothScroll,
             autoHideNavbar: typeof data.preference.autoHideNavbar === "boolean" ? data.preference.autoHideNavbar : state.autoHideNavbar,
+            scrollSpeed: data.preference.scrollSpeed ?? state.scrollSpeed ?? "IMMERSIVE",
           }));
         }
       }
@@ -176,6 +186,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
       showPageNumbers: state.showPageNumbers,
       smoothScroll: state.smoothScroll,
       autoHideNavbar: state.autoHideNavbar,
+      scrollSpeed: state.scrollSpeed,
     };
 
     try {

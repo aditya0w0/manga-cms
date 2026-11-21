@@ -71,6 +71,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     isFullscreen,
     smoothScroll,
     autoHideNavbar,
+    scrollSpeed,
     setReadingMode,
     setReadingDirection,
     setImageScaling,
@@ -79,6 +80,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     setShowPageNumbers,
     setSmoothScroll,
     setAutoHideNavbar,
+    setScrollSpeed,
     setCurrentPage,
     setTotalPages,
     nextPage,
@@ -111,12 +113,38 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     targetY: 0,
     startTime: 0,
     startY: 0,
-    duration: 480,
+    duration: 680,
   });
 
-  const triggerSmoothScroll = useCallback((delta: number, customDuration: number = 480) => {
+  // Reading pace configuration calibrated for human eye saccades and cognitive immersion
+  const getPaceConfig = useCallback(() => {
+    switch (scrollSpeed) {
+      case "FAST":
+        return {
+          ratio: 0.65,
+          baseDuration: 420,
+          curve: "cubic" as const,
+        };
+      case "BALANCED":
+        return {
+          ratio: 0.52,
+          baseDuration: 560,
+          curve: "sine" as const,
+        };
+      case "IMMERSIVE":
+      default:
+        return {
+          ratio: 0.44, // 44% screen height: leaves 56% panel context visible so the eye never loses position
+          baseDuration: 680, // 680ms gentle glide
+          curve: "sine" as const, // Sinusoidal S-curve: 0 initial jerk and smooth deceleration
+        };
+    }
+  }, [scrollSpeed]);
+
+  const triggerSmoothScroll = useCallback((delta: number) => {
     if (typeof window === "undefined") return;
 
+    const { ratio, baseDuration, curve } = getPaceConfig();
     const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const currentY = window.scrollY;
 
@@ -132,22 +160,29 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     }
 
     const startY = currentY;
+    const totalDist = Math.abs(targetY - startY);
+    const nominalStep = Math.max(1, Math.round(window.innerHeight * ratio));
+    // Scale duration proportionally so multi-tap glides maintain a steady, calm cruising velocity
+    const duration = Math.min(1000, Math.max(380, Math.round((totalDist / nominalStep) * baseDuration)));
+
     const startTime = performance.now();
     smoothScrollRef.current = {
       animId: null,
       targetY,
       startTime,
       startY,
-      duration: customDuration,
+      duration,
     };
 
-    // Smooth cubic deceleration curve for comfortable reading transitions
+    // S-curve easing eliminates initial burst speed (v(0) = 0), matching human saccadic tracking
+    const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+    const easeFn = curve === "sine" ? easeInOutSine : easeOutCubic;
 
     const step = (currentTime: number) => {
       const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / customDuration, 1);
-      const eased = easeOutCubic(progress);
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeFn(progress);
 
       window.scrollTo(0, startY + (targetY - startY) * eased);
 
@@ -159,7 +194,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     };
 
     smoothScrollRef.current.animId = requestAnimationFrame(step);
-  }, []);
+  }, [getPaceConfig]);
 
   // Hand back scroll control immediately if user uses mouse wheel or touches screen
   useEffect(() => {
@@ -352,12 +387,13 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
         case "Space":
         case "Spacebar": {
           e.preventDefault();
-          // Scroll distance calibrated to 68% viewport height for optimal panel overlapping
-          const distance = Math.round(window.innerHeight * 0.68);
+          const { ratio } = getPaceConfig();
+          // Calibrated step distance preserving generous overlapping context for reading focus
+          const distance = Math.round(window.innerHeight * ratio);
           const isScrollableMode = readingMode === "VERTICAL_SCROLL" || readingMode === "WEBTOON";
 
           if (isScrollableMode) {
-            const isAtBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 60;
+            const isAtBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 50;
             if (isAtBottom && !e.shiftKey) {
               if (chapter.nextChapter) {
                 router.push(`/read/${chapter.nextChapter.id}`);
@@ -367,13 +403,13 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
             if (e.shiftKey) {
               if (smoothScroll) {
-                triggerSmoothScroll(-distance, 480);
+                triggerSmoothScroll(-distance);
               } else {
                 window.scrollBy({ top: -distance, behavior: "auto" });
               }
             } else {
               if (smoothScroll) {
-                triggerSmoothScroll(distance, 480);
+                triggerSmoothScroll(distance);
               } else {
                 window.scrollBy({ top: distance, behavior: "auto" });
               }
@@ -386,7 +422,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             if (e.shiftKey) {
               if (!isAtTop) {
                 if (smoothScroll) {
-                  triggerSmoothScroll(-distance, 480);
+                  triggerSmoothScroll(-distance);
                 } else {
                   window.scrollBy({ top: -distance, behavior: "auto" });
                 }
@@ -396,7 +432,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             } else {
               if (!isAtBottom) {
                 if (smoothScroll) {
-                  triggerSmoothScroll(distance, 480);
+                  triggerSmoothScroll(distance);
                 } else {
                   window.scrollBy({ top: distance, behavior: "auto" });
                 }
@@ -415,9 +451,10 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
         case "PageDown": {
           e.preventDefault();
-          const distance = Math.round(window.innerHeight * 0.68);
+          const { ratio } = getPaceConfig();
+          const distance = Math.round(window.innerHeight * ratio);
           if (smoothScroll) {
-            triggerSmoothScroll(distance, 480);
+            triggerSmoothScroll(distance);
           } else {
             window.scrollBy({ top: distance, behavior: "auto" });
           }
@@ -426,9 +463,10 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
         case "PageUp": {
           e.preventDefault();
-          const distance = Math.round(window.innerHeight * 0.68);
+          const { ratio } = getPaceConfig();
+          const distance = Math.round(window.innerHeight * ratio);
           if (smoothScroll) {
-            triggerSmoothScroll(-distance, 480);
+            triggerSmoothScroll(-distance);
           } else {
             window.scrollBy({ top: -distance, behavior: "auto" });
           }
@@ -509,6 +547,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     chapter.nextChapter,
     router,
     smoothScroll,
+    getPaceConfig,
     triggerSmoothScroll,
     isSettingsOpen,
     isChapterListOpen,
@@ -1189,6 +1228,36 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 {smoothScroll ? "Smooth" : "Instant"}
               </button>
             </div>
+
+            {smoothScroll && (
+              <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
+                <div>
+                  <span className="font-semibold text-white">Scroll Pace</span>
+                  <p className="text-[11px] text-neutral-400">Glide velocity and step distance for Spacebar reading</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {[
+                    { id: "IMMERSIVE", label: "Immersive Glide", desc: "44% step, soft curve" },
+                    { id: "BALANCED", label: "Balanced", desc: "52% step, medium" },
+                    { id: "FAST", label: "Brisk", desc: "65% step, faster" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setScrollSpeed(p.id as any)}
+                      className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center gap-0.5 ${
+                        scrollSpeed === p.id
+                          ? "border-sky-400 bg-sky-500/20 text-sky-200 shadow-sm"
+                          : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <span className="font-semibold text-xs">{p.label}</span>
+                      <span className="text-[10px] text-neutral-400">{p.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">
