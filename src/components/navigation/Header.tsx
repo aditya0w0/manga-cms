@@ -15,6 +15,9 @@ import {
   Menu,
   X,
   Sparkles,
+  Clock,
+  Heart,
+  Settings,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/use-auth-store";
 import { Button } from "@/components/ui/Button";
@@ -166,12 +169,48 @@ export function Header() {
                     )}
 
                     <Link
-                      href="/library"
+                      href="/profile"
                       onClick={() => setIsUserMenuOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/[0.08]"
                     >
-                      <Bookmark className="h-3.5 w-3.5" />
-                      My Library
+                      <User className="h-3.5 w-3.5 text-sky-400" />
+                      User Profile
+                    </Link>
+
+                    <Link
+                      href="/profile?tab=saved"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/[0.08]"
+                    >
+                      <Heart className="h-3.5 w-3.5 text-rose-400" />
+                      Saved Titles
+                    </Link>
+
+                    <Link
+                      href="/profile?tab=bookmarks"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/[0.08]"
+                    >
+                      <Bookmark className="h-3.5 w-3.5 text-emerald-400" />
+                      Bookmarks
+                    </Link>
+
+                    <Link
+                      href="/profile?tab=history"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/[0.08]"
+                    >
+                      <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                      Reading History
+                    </Link>
+
+                    <Link
+                      href="/profile?tab=settings"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-foreground hover:bg-white/[0.08]"
+                    >
+                      <Settings className="h-3.5 w-3.5 text-amber-400" />
+                      Profile Settings
                     </Link>
 
                     <button
@@ -263,6 +302,38 @@ export function Header() {
 
               {user ? (
                 <>
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsMobileNavOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] transition-colors"
+                  >
+                    <User className="h-4 w-4 text-sky-400" />
+                    My Profile
+                  </Link>
+                  <Link
+                    href="/profile?tab=bookmarks"
+                    onClick={() => setIsMobileNavOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] transition-colors"
+                  >
+                    <Bookmark className="h-4 w-4 text-emerald-400" />
+                    Bookmarks
+                  </Link>
+                  <Link
+                    href="/profile?tab=history"
+                    onClick={() => setIsMobileNavOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] transition-colors"
+                  >
+                    <Clock className="h-4 w-4 text-cyan-400" />
+                    Reading History
+                  </Link>
+                  <Link
+                    href="/profile?tab=settings"
+                    onClick={() => setIsMobileNavOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:text-foreground hover:bg-white/[0.08] transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-amber-400" />
+                    Settings
+                  </Link>
                   {(user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
                     <Link
                       href="/admin"

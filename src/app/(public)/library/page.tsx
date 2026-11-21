@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuthStore } from "@/lib/store/use-auth-store";
 import { MangaCard } from "@/components/manga/MangaCard";
 import { Button } from "@/components/ui/Button";
-import { Bookmark, Clock, Heart, BookOpen, LogIn } from "lucide-react";
+import { Bookmark, Clock, Heart, BookOpen, LogIn, User } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getSafeImageUrl, getProxyFallbackUrl } from "@/lib/image-utils";
 
@@ -73,6 +73,20 @@ export default function LibraryPage() {
           <p className="text-xs text-muted-foreground mt-1">
             Signed in as <span className="text-foreground font-semibold">{user.username}</span> ({user.email})
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/profile?tab=bookmarks">
+            <Button size="sm" variant="outline" className="text-xs gap-1.5 border-white/10 hover:border-emerald-500/30 liquid-glass-pill">
+              <Bookmark className="h-3.5 w-3.5 text-emerald-400" />
+              Bookmarks
+            </Button>
+          </Link>
+          <Link href="/profile">
+            <Button size="sm" variant="outline" className="text-xs gap-1.5 border-white/10 hover:border-sky-500/30 liquid-glass-pill">
+              <User className="h-3.5 w-3.5 text-sky-400" />
+              Full Profile & Settings
+            </Button>
+          </Link>
         </div>
       </div>
 

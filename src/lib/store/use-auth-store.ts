@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { useUserLibraryStore } from "./use-user-library-store";
 
 export interface UserProfile {
   id: string;
@@ -29,6 +30,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (res.ok) {
         const data = await res.json();
         set({ user: data.user, isLoading: false });
+        if (data.user) {
+          useUserLibraryStore.getState().syncGuestDataOnLogin().catch(() => {});
+        }
       } else {
         set({ user: null, isLoading: false });
       }

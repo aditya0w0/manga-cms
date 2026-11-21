@@ -21,11 +21,13 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/Dialog";
 import { useAuthStore } from "@/lib/store/use-auth-store";
+import { useUserLibraryStore } from "@/lib/store/use-user-library-store";
 import { formatDate } from "@/lib/utils";
 import { getSafeImageUrl, getProxyFallbackUrl } from "@/lib/image-utils";
 
 export function MangaDetailClient({ initialManga }: { initialManga: any }) {
   const { user } = useAuthStore();
+  const { bookmarkedIds, toggleBookmark, fetchBookmarks } = useUserLibraryStore();
   const [manga, setManga] = useState(initialManga);
   const [sortAsc, setSortAsc] = useState(false);
   const [chapterSearch, setChapterSearch] = useState("");
@@ -56,6 +58,10 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
       })
       .catch(() => {});
   }, [user, manga.id]);
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [fetchBookmarks]);
 
   const handleLibraryChange = async (newStatus: string) => {
     if (!user) {
@@ -280,6 +286,25 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                     No Chapters Available
                   </Button>
                 )}
+
+                {/* Bookmark Toggle Button */}
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => toggleBookmark(manga.id, Boolean(user))}
+                  className={`gap-1.5 liquid-glass-pill transition-all ${
+                    bookmarkedIds.has(manga.id)
+                      ? "text-emerald-300 border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                      : "text-slate-300 hover:border-emerald-500/40"
+                  }`}
+                >
+                  <Bookmark
+                    className={`h-4 w-4 ${
+                      bookmarkedIds.has(manga.id) ? "fill-emerald-400 text-emerald-400" : ""
+                    }`}
+                  />
+                  {bookmarkedIds.has(manga.id) ? "Bookmarked" : "Bookmark"}
+                </Button>
 
                 {/* Library Selector */}
                 <select
