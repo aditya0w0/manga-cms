@@ -26,6 +26,11 @@ import {
   RefreshCw,
   Sliders,
   List,
+  Layout,
+  Palette,
+  Navigation,
+  Monitor,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/Dialog";
@@ -88,6 +93,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
   } = useReaderStore();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"layout" | "appearance" | "behavior">("layout");
   const [isChapterListOpen, setIsChapterListOpen] = useState(false);
   const [allChapters, setAllChapters] = useState<any[]>([]);
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
@@ -106,10 +112,20 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     }
   };
 
+  // Load user preferences once on mount
   useEffect(() => {
     loadPreferences();
+  }, [loadPreferences]);
+
+  // When chapter changes, initialize page count, reset reading position, and scroll to top
+  useEffect(() => {
     setTotalPages(chapter.pages.length);
-  }, [chapter.pages.length, loadPreferences, setTotalPages]);
+    setCurrentPage(1);
+    setFailedImages({});
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [chapter.id, chapter.pages.length, setCurrentPage, setTotalPages]);
 
   // Load all chapters for the chapter drawer
   useEffect(() => {
@@ -347,15 +363,55 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     }
   };
 
+  const handleViewportClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Do not toggle controls if user clicked on buttons, links, inputs, sliders, or inside open dialogs
+    if (
+      target.closest("button") ||
+      target.closest("a") ||
+      target.closest("input") ||
+      target.closest("select") ||
+      target.closest("[role='dialog']")
+    ) {
+      return;
+    }
+
+    if (readingMode === "SINGLE_PAGE" || readingMode === "DOUBLE_PAGE") {
+      const x = e.clientX;
+      const width = window.innerWidth;
+      const isRTL = readingDirection === "RTL";
+      if (x < width * 0.3) {
+        if (isRTL) {
+          nextPage();
+        } else {
+          prevPage();
+        }
+        return;
+      }
+      if (x > width * 0.7) {
+        if (isRTL) {
+          prevPage();
+        } else {
+          nextPage();
+        }
+        return;
+      }
+    }
+
+    toggleControls();
+  };
+
   return (
     <div className={`relative min-h-screen select-none ${getBgClass()} transition-colors duration-300`}>
       {/* Top Floating Control Bar */}
       <div
-        className={`fixed top-0 left-0 right-0 z-40 transition-transform duration-300 ${
-          showControls ? "translate-y-0" : "-translate-y-full"
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out ${
+          showControls
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        <div className="flex items-center justify-between liquid-glass-obsidian border-b border-white/[0.08] px-4 py-3 shadow-2xl">
+        <div className="flex items-center justify-between liquid-glass-obsidian border-b border-white/[0.08] px-4 py-3 shadow-2xl backdrop-blur-md">
           <div className="flex items-center space-x-3">
             <Link href={`/manga/${chapter.manga.slug}`}>
               <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-white hover:bg-white/10">
@@ -409,13 +465,8 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
       {/* Main Reading Viewport */}
       <main
-        className="pt-16 pb-24 min-h-screen flex flex-col items-center justify-center cursor-default"
-        onClick={(e) => {
-          // If clicked directly on background, toggle controls
-          if ((e.target as HTMLElement).tagName !== "IMG" && (e.target as HTMLElement).tagName !== "BUTTON") {
-            toggleControls();
-          }
-        }}
+        className="pt-14 pb-20 min-h-screen flex flex-col items-center justify-center cursor-default w-full"
+        onClick={handleViewportClick}
         style={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center" }}
       >
         {/* MODE 1: Vertical Continuous Scroll (Webtoon) */}
@@ -585,11 +636,11 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
       {/* Bottom Floating Navigation & Page Controls */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ${
-          showControls ? "translate-y-0" : "translate-y-full"
+        className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out ${
+          showControls ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        <div className="flex flex-col sm:flex-row items-center justify-between liquid-glass-obsidian border-t border-white/[0.08] px-6 py-3.5 gap-3 shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-center justify-between liquid-glass-obsidian border-t border-white/[0.08] px-6 py-3.5 gap-3 shadow-2xl backdrop-blur-md">
           {/* Chapter Jump Buttons */}
           <div className="flex items-center space-x-2">
             {chapter.prevChapter ? (
@@ -666,207 +717,336 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
         </div>
       </div>
 
-      {/* Reader Settings Modal */}
-      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+      {/* Reader Settings Modal (Crafted Anti-Slop Segmented Design) */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} className="max-w-xl p-6">
         <DialogHeader>
-          <DialogTitle>Reader Settings</DialogTitle>
-          <DialogDescription>
-            Customize display mode, directions, scaling, and theme colors.
+          <DialogTitle className="text-lg font-bold text-white tracking-tight">Reader Settings</DialogTitle>
+          <DialogDescription className="text-xs text-neutral-400">
+            Configure layout viewports, reading directions, canvas styles, and navigation interactions.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 my-3 text-xs">
-          {/* Reading Mode */}
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-              Reading Mode
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: "VERTICAL_SCROLL", label: "Vertical Scroll" },
-                { id: "WEBTOON", label: "Webtoon Continuous" },
-                { id: "SINGLE_PAGE", label: "Single Page" },
-                { id: "DOUBLE_PAGE", label: "Double Page" },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setReadingMode(m.id as ReadingMode)}
-                  className={`p-2 rounded-xl border text-left text-xs font-medium transition-colors ${
-                    readingMode === m.id
-                      ? "border-sky-500 bg-sky-500/15 text-sky-300"
-                      : "border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Segmented Category Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/10 my-3">
+          <button
+            type="button"
+            onClick={() => setSettingsTab("layout")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+              settingsTab === "layout"
+                ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            <Layout className="h-3.5 w-3.5" />
+            Layout
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettingsTab("appearance")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+              settingsTab === "appearance"
+                ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            <Palette className="h-3.5 w-3.5" />
+            Appearance
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettingsTab("behavior")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+              settingsTab === "behavior"
+                ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            <Navigation className="h-3.5 w-3.5" />
+            Navigation
+          </button>
+        </div>
 
-          {/* Reading Direction */}
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-              Reading Direction
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: "LTR", label: "Left to Right" },
-                { id: "RTL", label: "Right to Left (Manga)" },
-                { id: "VERTICAL", label: "Vertical" },
-              ].map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => setReadingDirection(d.id as ReadingDirection)}
-                  className={`p-2 rounded-xl border text-center text-xs font-medium transition-colors ${
-                    readingDirection === d.id
-                      ? "border-sky-500 bg-sky-500/15 text-sky-300"
-                      : "border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
-                  }`}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Image Scaling */}
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-              Image Scaling
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: "FIT_WIDTH", label: "Fit Width" },
-                { id: "FIT_HEIGHT", label: "Fit Height" },
-                { id: "ORIGINAL", label: "Original" },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setImageScaling(s.id as ImageScaling)}
-                  className={`p-2 rounded-xl border text-center text-xs font-medium transition-colors ${
-                    imageScaling === s.id
-                      ? "border-sky-500 bg-sky-500/15 text-sky-300"
-                      : "border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Background Color */}
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-              Background Color
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { id: "DARK", label: "Dark", color: "#0B0D12" },
-                { id: "BLACK", label: "Pure Black", color: "#000000" },
-                { id: "GRAY", label: "Charcoal", color: "#262626" },
-                { id: "LIGHT", label: "Light", color: "#F5F5F5" },
-              ].map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => setBackgroundColor(b.id as ReaderBg)}
-                  className={`p-2 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-medium transition-colors ${
-                    backgroundColor === b.id
-                      ? "border-sky-500 bg-sky-500/15 text-sky-300"
-                      : "border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
-                  }`}
-                >
-                  <span className="h-3 w-3 rounded-full border border-white/20" style={{ backgroundColor: b.color }} />
-                  {b.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Page Number Visibility */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+        {/* Tab 1: Layout & Modes */}
+        {settingsTab === "layout" && (
+          <div className="space-y-4 text-xs py-1">
             <div>
-              <div className="text-xs font-semibold text-slate-200">Show Page Indicator</div>
-              <p className="text-[11px] text-slate-400">Display page numbers during reading</p>
-            </div>
-            <button
-              onClick={() => setShowPageNumbers(!showPageNumbers)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-                showPageNumbers
-                  ? "border-sky-500 bg-sky-500/15 text-sky-300"
-                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
-              }`}
-            >
-              {showPageNumbers ? "Visible" : "Hidden (Clean)"}
-            </button>
-          </div>
-
-          {/* Smooth Scrolling Toggle */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-            <div>
-              <div className="text-xs font-semibold text-slate-200">Smooth Scrolling</div>
-              <p className="text-[11px] text-slate-400">Fluid vertical transitions during reading</p>
-            </div>
-            <button
-              onClick={() => setSmoothScroll(!smoothScroll)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-                smoothScroll
-                  ? "border-sky-500 bg-sky-500/15 text-sky-300"
-                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
-              }`}
-            >
-              {smoothScroll ? "Smooth" : "Instant"}
-            </button>
-          </div>
-
-          {/* Auto-Hide Navbar Toggle */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-            <div>
-              <div className="text-xs font-semibold text-slate-200">Auto-Hide Navbar</div>
-              <p className="text-[11px] text-slate-400">Immersive reading with auto-hiding navigation bars</p>
-            </div>
-            <button
-              onClick={() => setAutoHideNavbar(!autoHideNavbar)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-                autoHideNavbar
-                  ? "border-sky-500 bg-sky-500/15 text-sky-300"
-                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
-              }`}
-            >
-              {autoHideNavbar ? "Auto-Hide" : "Sticky"}
-            </button>
-          </div>
-
-          {/* Page Gap Slider (for continuous mode) */}
-          {(readingMode === "VERTICAL_SCROLL" || readingMode === "WEBTOON") && (
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-semibold text-slate-300">
-                  Page Gap: {pageGap}px
-                </label>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">
+                Reading Mode
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "VERTICAL_SCROLL", label: "Vertical Scroll", desc: "Standard webtoon view with spacing" },
+                  { id: "WEBTOON", label: "Webtoon Seamless", desc: "Flush continuous page strip" },
+                  { id: "SINGLE_PAGE", label: "Single Page", desc: "Classic one page pagination" },
+                  { id: "DOUBLE_PAGE", label: "Double Page", desc: "Two pages side by side spread" },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setReadingMode(m.id as ReadingMode)}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-0.5 ${
+                      readingMode === m.id
+                        ? "border-sky-400 bg-sky-500/15 text-white shadow-sm"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <span className={`font-semibold ${readingMode === m.id ? "text-sky-300" : "text-white"}`}>
+                      {m.label}
+                    </span>
+                    <span className="text-[11px] text-neutral-400 line-clamp-1">{m.desc}</span>
+                  </button>
+                ))}
               </div>
-              <input
-                type="range"
-                min="0"
-                max="40"
-                step="4"
-                value={pageGap}
-                onChange={(e) => setPageGap(Number(e.target.value))}
-                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
-              />
             </div>
-          )}
 
-          {/* Shortcuts Info */}
-          <div className="pt-2 border-t border-border/60">
-            <h5 className="font-bold text-foreground mb-1">Keyboard Shortcuts</h5>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-              <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">← / →</kbd> Page or Chapter</div>
-              <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">F</kbd> Fullscreen</div>
-              <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">H</kbd> Hide/Show UI</div>
-              <div><kbd className="px-1 py-0.5 rounded bg-surface-elevated border border-border">A / D</kbd> Prev/Next Chapter</div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">
+                Reading Direction
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "LTR", label: "Left to Right" },
+                  { id: "RTL", label: "Right to Left (Manga)" },
+                  { id: "VERTICAL", label: "Vertical Flow" },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => setReadingDirection(d.id as ReadingDirection)}
+                    className={`py-2 px-3 rounded-xl border text-center font-medium transition-all ${
+                      readingDirection === d.id
+                        ? "border-sky-400 bg-sky-500/15 text-sky-200 shadow-sm"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(readingMode === "VERTICAL_SCROLL" || readingMode === "WEBTOON") && (
+              <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-white">Page Gap</span>
+                    <p className="text-[11px] text-neutral-400">Vertical separation between consecutive pages</p>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-400/30 px-2 py-0.5 rounded-md">
+                    {pageGap}px
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="40"
+                  step="2"
+                  value={pageGap}
+                  onChange={(e) => setPageGap(Number(e.target.value))}
+                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                />
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="text-[11px] text-neutral-400 mr-1">Presets:</span>
+                  {[
+                    { val: 0, label: "0px (Flush)" },
+                    { val: 8, label: "8px" },
+                    { val: 16, label: "16px" },
+                    { val: 24, label: "24px" },
+                  ].map((p) => (
+                    <button
+                      key={p.val}
+                      type="button"
+                      onClick={() => setPageGap(p.val)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors ${
+                        pageGap === p.val
+                          ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                          : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">
+                Image Scaling
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "FIT_WIDTH", label: "Fit Width" },
+                  { id: "FIT_HEIGHT", label: "Fit Height" },
+                  { id: "ORIGINAL", label: "Original Size" },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setImageScaling(s.id as ImageScaling)}
+                    className={`py-2 px-3 rounded-xl border text-center font-medium transition-all ${
+                      imageScaling === s.id
+                        ? "border-sky-400 bg-sky-500/15 text-sky-200 shadow-sm"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Tab 2: Theme & Appearance */}
+        {settingsTab === "appearance" && (
+          <div className="space-y-4 text-xs py-1">
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">
+                Canvas Background Theme
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "DARK", label: "Dark Obsidian", color: "#0B0D12", border: "border-neutral-700" },
+                  { id: "BLACK", label: "Pure OLED Black", color: "#000000", border: "border-neutral-800" },
+                  { id: "GRAY", label: "Charcoal Slate", color: "#262626", border: "border-neutral-600" },
+                  { id: "LIGHT", label: "Clean Paper", color: "#F5F5F5", border: "border-neutral-300" },
+                ].map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setBackgroundColor(b.id as ReaderBg)}
+                    className={`p-2.5 rounded-xl border flex items-center gap-2.5 transition-all ${
+                      backgroundColor === b.id
+                        ? "border-sky-400 bg-sky-500/15 text-white shadow-sm"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full border shadow-inner ${b.border}`}
+                      style={{ backgroundColor: b.color }}
+                    />
+                    <span className="font-semibold text-xs">{b.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
+              <div>
+                <span className="font-semibold text-white">Page Number Badge</span>
+                <p className="text-[11px] text-neutral-400">Display floating page counter indicator during reading</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPageNumbers(!showPageNumbers)}
+                className={`px-3 py-1.5 rounded-xl font-medium border transition-colors ${
+                  showPageNumbers
+                    ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                    : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
+                }`}
+              >
+                {showPageNumbers ? "Visible" : "Hidden"}
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
+              <div>
+                <span className="font-semibold text-white">Fullscreen Display</span>
+                <p className="text-[11px] text-neutral-400">Expand reader to cover the physical display</p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="px-3 py-1.5 rounded-xl font-medium border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06] transition-colors"
+              >
+                {isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Navigation & Behavior */}
+        {settingsTab === "behavior" && (
+          <div className="space-y-4 text-xs py-1">
+            <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
+              <div>
+                <span className="font-semibold text-white">Auto-Hide Navigation Bars</span>
+                <p className="text-[11px] text-neutral-400">Automatically hide header and footer controls while scrolling</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAutoHideNavbar(!autoHideNavbar)}
+                className={`px-3 py-1.5 rounded-xl font-medium border transition-colors ${
+                  autoHideNavbar
+                    ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                    : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
+                }`}
+              >
+                {autoHideNavbar ? "Auto-Hide" : "Sticky"}
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
+              <div>
+                <span className="font-semibold text-white">Smooth Scrolling</span>
+                <p className="text-[11px] text-neutral-400">Fluid viewport scrolling animations during reading</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSmoothScroll(!smoothScroll)}
+                className={`px-3 py-1.5 rounded-xl font-medium border transition-colors ${
+                  smoothScroll
+                    ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                    : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
+                }`}
+              >
+                {smoothScroll ? "Smooth" : "Instant"}
+              </button>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">
+                Keyboard Shortcuts
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] flex items-center justify-between">
+                  <span className="text-neutral-300">Page or Chapter</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-white/15 text-neutral-200 font-mono text-[11px]">
+                    Left / Right
+                  </kbd>
+                </div>
+                <div className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] flex items-center justify-between">
+                  <span className="text-neutral-300">Next / Prev Chapter</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-white/15 text-neutral-200 font-mono text-[11px]">
+                    A / D
+                  </kbd>
+                </div>
+                <div className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] flex items-center justify-between">
+                  <span className="text-neutral-300">Toggle Fullscreen</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-white/15 text-neutral-200 font-mono text-[11px]">
+                    F
+                  </kbd>
+                </div>
+                <div className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] flex items-center justify-between">
+                  <span className="text-neutral-300">Show / Hide UI</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-white/15 text-neutral-200 font-mono text-[11px]">
+                    H
+                  </kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 pt-3 border-t border-white/10 flex justify-end">
+          <Button
+            size="sm"
+            onClick={() => setIsSettingsOpen(false)}
+            className="liquid-glass-btn-primary px-4 py-1.5 text-xs font-semibold"
+          >
+            Save & Close
+          </Button>
         </div>
       </Dialog>
 

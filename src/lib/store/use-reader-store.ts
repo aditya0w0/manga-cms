@@ -131,10 +131,14 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   loadPreferences: async () => {
     // 1. Try local storage first
     try {
-      const local = localStorage.getItem("reader_prefs");
+      const local = typeof window !== "undefined" ? localStorage.getItem("reader_prefs") : null;
       if (local) {
         const parsed = JSON.parse(local);
-        set(parsed);
+        set((state) => ({
+          ...state,
+          ...parsed,
+          pageGap: typeof parsed.pageGap === "number" ? parsed.pageGap : state.pageGap,
+        }));
       }
     } catch {}
 
@@ -143,18 +147,18 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
       const res = await fetch("/api/user/preferences");
       if (res.ok) {
         const data = await res.json();
-        if (data.preference) {
-          set({
-            readingMode: data.preference.readingMode || "VERTICAL_SCROLL",
-            readingDirection: data.preference.readingDirection || "LTR",
-            imageScaling: data.preference.imageScaling || "FIT_WIDTH",
-            backgroundColor: data.preference.backgroundColor || "DARK",
-            pageGap: data.preference.pageGap || 12,
-            preloadCount: data.preference.preloadCount || 2,
-            showPageNumbers: data.preference.showPageNumbers ?? false,
-            smoothScroll: data.preference.smoothScroll ?? true,
-            autoHideNavbar: data.preference.autoHideNavbar ?? true,
-          });
+        if (data?.preference) {
+          set((state) => ({
+            readingMode: data.preference.readingMode ?? state.readingMode,
+            readingDirection: data.preference.readingDirection ?? state.readingDirection,
+            imageScaling: data.preference.imageScaling ?? state.imageScaling,
+            backgroundColor: data.preference.backgroundColor ?? state.backgroundColor,
+            pageGap: typeof data.preference.pageGap === "number" ? data.preference.pageGap : state.pageGap,
+            preloadCount: typeof data.preference.preloadCount === "number" ? data.preference.preloadCount : state.preloadCount,
+            showPageNumbers: typeof data.preference.showPageNumbers === "boolean" ? data.preference.showPageNumbers : state.showPageNumbers,
+            smoothScroll: typeof data.preference.smoothScroll === "boolean" ? data.preference.smoothScroll : state.smoothScroll,
+            autoHideNavbar: typeof data.preference.autoHideNavbar === "boolean" ? data.preference.autoHideNavbar : state.autoHideNavbar,
+          }));
         }
       }
     } catch {}

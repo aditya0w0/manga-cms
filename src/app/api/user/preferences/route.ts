@@ -6,17 +6,10 @@ export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      // Default preferences for guest
+      // Guest reader: do not return mock defaults that overwrite client preferences
       return NextResponse.json({
-        preference: {
-          readingMode: "VERTICAL_SCROLL",
-          readingDirection: "LTR",
-          imageScaling: "FIT_WIDTH",
-          backgroundColor: "DARK",
-          pageGap: 12,
-          preloadCount: 2,
-          showPageNumbers: true,
-        },
+        guest: true,
+        preference: null,
       });
     }
 
