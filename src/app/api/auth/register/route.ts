@@ -80,6 +80,12 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (err: any) {
+    if (err.code === "P2002" || err.message?.includes("Unique constraint")) {
+      return NextResponse.json(
+        { error: "Email or username already taken" },
+        { status: 409 }
+      );
+    }
     console.error("Register error:", err);
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }

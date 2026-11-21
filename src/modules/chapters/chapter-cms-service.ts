@@ -297,6 +297,30 @@ export class ChapterCmsService {
     orders: ReorderPageItem[],
     actorId?: string
   ) {
+    if (!orders || orders.length === 0) {
+      throw new Error("VALIDATION_ERROR: Orders list cannot be empty");
+    }
+
+    const seenPageIds = new Set<string>();
+    const seenPageNumbers = new Set<number>();
+
+    for (const item of orders) {
+      if (!item.pageId || typeof item.pageId !== "string") {
+        throw new Error("VALIDATION_ERROR: Missing or invalid pageId");
+      }
+      if (!Number.isInteger(item.pageNumber) || item.pageNumber <= 0) {
+        throw new Error("VALIDATION_ERROR: pageNumber must be a positive integer");
+      }
+      if (seenPageIds.has(item.pageId)) {
+        throw new Error(`VALIDATION_ERROR: Duplicate pageId "${item.pageId}" in reorder payload`);
+      }
+      if (seenPageNumbers.has(item.pageNumber)) {
+        throw new Error(`VALIDATION_ERROR: Duplicate pageNumber "${item.pageNumber}" in reorder payload`);
+      }
+      seenPageIds.add(item.pageId);
+      seenPageNumbers.add(item.pageNumber);
+    }
+
     const db = await getPrisma();
     const chapter = await db.chapter.findUnique({ where: { id: chapterId } });
     if (!chapter) throw new Error("CHAPTER_NOT_FOUND");

@@ -147,6 +147,23 @@ export async function POST(req: NextRequest) {
           403
         );
       }
+
+      if (sourceMode === "archive") {
+        const resolvedPath = path.resolve(process.cwd(), sourceRef);
+        const allowedDirs = [
+          path.resolve(process.cwd(), "storage"),
+          path.resolve(process.cwd(), "data"),
+          path.resolve(process.cwd(), "public"),
+        ];
+        const isAllowed = allowedDirs.some((dir) => resolvedPath.startsWith(dir + path.sep));
+        if (!isAllowed && process.env.ALLOW_LOCAL_DIR_INGEST !== "true") {
+          return ApiResponse.error(
+            "FORBIDDEN",
+            "Access to external archive paths is restricted. Store archive under storage/ or set ALLOW_LOCAL_DIR_INGEST=true.",
+            403
+          );
+        }
+      }
     }
 
     const reader = createSourceReader({

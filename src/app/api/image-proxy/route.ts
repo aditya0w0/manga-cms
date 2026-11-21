@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateSafeUrl } from "@/lib/security/safe-fetch";
+import { safeFetchBuffer } from "@/lib/security/safe-fetch";
+import sizeOf from "image-size";
+
+const ALLOWED_IMAGE_TYPES = new Set(["jpg", "png", "webp", "avif", "gif"]);
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -9,43 +12,66 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Missing url parameter", { status: 400 });
   }
 
-  // Security check against SSRF
-  const validation = await validateSafeUrl(targetUrl);
-  if (!validation.safe) {
-    return new NextResponse(`Invalid or unsafe URL: ${validation.error}`, { status: 403 });
-  }
-
   try {
     const fetchHeaders: Record<string, string> = {
       "User-Agent": "MangaCMS/1.0 (Universal Manga Reader; +https://github.com/mangacms)",
-      Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      Accept: "image/avif,image/webp,image/apng,image/jpeg,image/png,image/*;q=0.8",
     };
 
     if (targetUrl.includes("mangadex.org")) {
       fetchHeaders["Referer"] = "https://mangadex.org/";
     }
 
-    const upstream = await fetch(targetUrl, {
+    const response = await safeFetchBuffer(targetUrl, {
       headers: fetchHeaders,
-      signal: AbortSignal.timeout(15000),
+      timeoutMs: 15000,
+      maxResponseSizeBytes: 15 * 1024 * 1024, // 15MB limit
+      maxRedirects: 5,
     });
 
-    if (!upstream.ok) {
-      return new NextResponse(`Upstream returned ${upstream.status}`, { status: upstream.status });
+    if (response.status < 200 || response.status >= 300) {
+      return new NextResponse(`Upstream returned ${response.status}`, { status: response.status });
     }
 
-    const contentType = upstream.headers.get("content-type") || "image/jpeg";
-    const buffer = await upstream.arrayBuffer();
+    // Verify magic bytes and enforce image format to prevent XSS / non-image delivery
+    let detectedType: string | undefined;
+    try {
+      const dimensions = sizeOf(response.buffer);
+      detectedType = dimensions.type;
+    } catch {
+      return new NextResponse("Invalid or corrupted image data", { status: 415 });
+    }
 
-    return new NextResponse(buffer, {
+    if (!detectedType || !ALLOWED_IMAGE_TYPES.has(detectedType)) {
+      return new NextResponse("Unsupported image format", { status: 415 });
+    }
+
+    const mimeType = detectedType === "jpg" ? "image/jpeg" : `image/${detectedType}`;
+
+    return new NextResponse(new Uint8Array(response.buffer), {
       status: 200,
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": mimeType,
+        "Content-Length": String(response.buffer.length),
         "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400, immutable",
         "Access-Control-Allow-Origin": "*",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
       },
     });
   } catch (err: any) {
-    return new NextResponse(`Failed to fetch image: ${err.message}`, { status: 502 });
+    const message = err?.message || String(err);
+
+    if (message.includes("SSRF Prevention Block")) {
+      return new NextResponse(`Invalid or unsafe URL: ${message}`, { status: 403 });
+    }
+    if (message.includes("RESPONSE_TOO_LARGE")) {
+      return new NextResponse("Image payload exceeds maximum allowable size (15MB)", { status: 413 });
+    }
+    if (message.includes("TIMEOUT")) {
+      return new NextResponse("Upstream image request timed out", { status: 504 });
+    }
+
+    return new NextResponse(`Failed to fetch image: ${message}`, { status: 502 });
   }
 }

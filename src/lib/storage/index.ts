@@ -98,29 +98,47 @@ export async function saveFile(
     };
   }
 
-  // Local filesystem storage
-  if (folder.includes("..") || folder.includes("/") || folder.includes("\\") || folder.includes("\0")) {
+  // Local filesystem storage: validate and sanitize folder path
+  if (folder.includes("\0")) {
+    throw new Error("INVALID_STORAGE_PATH: Folder path contains null bytes");
+  }
+
+  // Split folder into segments, strip any empty, '.', or illegal characters
+  const rawSegments = folder.split(/[/\\]+/).filter(Boolean);
+  const safeSegments: string[] = [];
+
+  for (const seg of rawSegments) {
+    if (seg === ".." || seg === ".") {
+      throw new Error("INVALID_STORAGE_PATH: Folder path attempts traversal");
+    }
+    const cleanSeg = seg.replace(/[^a-zA-Z0-9-_]/g, "");
+    if (!cleanSeg) {
+      throw new Error("INVALID_STORAGE_PATH: Folder path contains invalid segment characters");
+    }
+    safeSegments.push(cleanSeg);
+  }
+
+  const safeFolder = safeSegments.length > 0 ? safeSegments.join("/") : "general";
+  const targetDir = path.resolve(UPLOAD_DIR, ...safeSegments);
+
+  if (!targetDir.startsWith(UPLOAD_DIR + path.sep) && targetDir !== UPLOAD_DIR) {
     throw new Error("INVALID_STORAGE_PATH: Folder path attempts traversal");
   }
 
-  const safeFolder = path.basename(folder.replace(/[^a-zA-Z0-9-_]/g, "")) || "general";
-  const targetDir = path.resolve(UPLOAD_DIR, safeFolder);
-  if (!targetDir.startsWith(UPLOAD_DIR)) {
-    throw new Error("INVALID_STORAGE_PATH: Folder path attempts traversal");
-  }
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
   }
 
-  const filePath = path.resolve(targetDir, path.basename(storedFilename));
-  if (!filePath.startsWith(targetDir)) {
+  const cleanFilename = path.basename(storedFilename);
+  const filePath = path.resolve(targetDir, cleanFilename);
+  if (!filePath.startsWith(targetDir + path.sep)) {
     throw new Error("INVALID_STORAGE_PATH: Target file attempts traversal");
   }
   fs.writeFileSync(filePath, buffer);
 
   return {
-    url: `/uploads/${safeFolder}/${storedFilename}`,
-    storageKey: `${safeFolder}/${storedFilename}`,
+    url: `/uploads/${safeFolder}/${cleanFilename}`,
+    storageKey: `${safeFolder}/${cleanFilename}`,
     size,
     mimeType,
     originalName: originalFilename,
@@ -131,8 +149,12 @@ export async function saveFile(
  * Deletes a file from storage by its storageKey
  */
 export async function deleteFile(storageKey: string): Promise<boolean> {
+  if (storageKey.includes("\0") || storageKey.includes("..")) {
+    throw new Error("INVALID_STORAGE_PATH: Attempted path traversal in deleteFile");
+  }
+
   const localPath = path.resolve(UPLOAD_DIR, storageKey);
-  if (!localPath.startsWith(UPLOAD_DIR)) {
+  if (!localPath.startsWith(UPLOAD_DIR + path.sep) && localPath !== UPLOAD_DIR) {
     throw new Error("INVALID_STORAGE_PATH: Attempted path traversal in deleteFile");
   }
 
@@ -161,13 +183,44 @@ export async function deleteFile(storageKey: string): Promise<boolean> {
 /**
  * Extracts a chapter ZIP archive, filters images, sorts them naturally,
  * and saves them using the active storage provider.
+ * Protects against zip bombs, zip-slip, and memory exhaustion.
  */
 export async function extractAndSaveZip(
   zipBuffer: Buffer,
   folderPrefix: string
 ): Promise<ZipExtractionReport> {
+  const MAX_ZIP_ENTRIES = 1000;
+  const MAX_TOTAL_UNCOMPRESSED_BYTES = 500 * 1024 * 1024; // 500MB
+  const MAX_COMPRESSION_RATIO = 100;
+
   const zip = new AdmZip(zipBuffer);
   const zipEntries = zip.getEntries();
+
+  if (zipEntries.length > MAX_ZIP_ENTRIES) {
+    throw new Error(`ZIP_BOMB_DETECTED: Archive exceeds maximum allowed entry count of ${MAX_ZIP_ENTRIES}`);
+  }
+
+  let totalUncompressed = 0;
+
+  for (const entry of zipEntries) {
+    // Zip-slip guard
+    if (entry.entryName.includes("..") || entry.entryName.includes("\0")) {
+      throw new Error("SECURITY_VIOLATION: Zip entry path contains illegal traversal characters");
+    }
+
+    const uncompSize = entry.header?.size ?? 0;
+    const compSize = entry.header?.compressedSize ?? 0;
+
+    totalUncompressed += uncompSize;
+
+    if (totalUncompressed > MAX_TOTAL_UNCOMPRESSED_BYTES) {
+      throw new Error(`ZIP_BOMB_DETECTED: Archive exceeds maximum uncompressed size of ${MAX_TOTAL_UNCOMPRESSED_BYTES / (1024 * 1024)}MB`);
+    }
+
+    if (compSize > 0 && (uncompSize / compSize) > MAX_COMPRESSION_RATIO) {
+      throw new Error(`ZIP_BOMB_DETECTED: Compression ratio exceeds safety limit of ${MAX_COMPRESSION_RATIO}x`);
+    }
+  }
 
   const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"];
   const skippedFiles: string[] = [];
@@ -201,7 +254,12 @@ export async function extractAndSaveZip(
     const entry = imageEntries[i];
     const pageNumber = i + 1;
     const buffer = entry.getData();
-    const stored = await saveFile(buffer, entry.name, folderPrefix);
+
+    if (buffer.length > 50 * 1024 * 1024) {
+      throw new Error("FILE_TOO_LARGE: Extracted page image exceeds maximum single page limit of 50MB");
+    }
+
+    const stored = await saveFile(buffer, path.basename(entry.name), folderPrefix);
 
     pages.push({
       pageNumber,

@@ -40,7 +40,19 @@ export function verifyUserToken(token: string): TokenPayload | null {
 /**
  * Extracts session token from Cookie or Authorization header
  */
-export async function getSessionToken(): Promise<string | null> {
+export async function getSessionToken(req?: Request): Promise<string | null> {
+  if (req) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      return authHeader.substring(7);
+    }
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader) {
+      const match = cookieHeader.match(new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`));
+      if (match) return match[1];
+    }
+  }
+
   try {
     const cookieStore = cookies();
     const tokenCookie = cookieStore.get(SESSION_COOKIE_NAME);
@@ -64,8 +76,8 @@ export async function getSessionToken(): Promise<string | null> {
   return null;
 }
 
-export async function getCurrentUser() {
-  const token = await getSessionToken();
+export async function getCurrentUser(req?: Request) {
+  const token = await getSessionToken(req);
   if (!token) return null;
 
   const payload = verifyUserToken(token);

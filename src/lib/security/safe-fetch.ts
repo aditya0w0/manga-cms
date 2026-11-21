@@ -253,3 +253,150 @@ export async function safeFetch(
 
   throw new Error(`Exceeded maximum redirect count of ${maxRedirects}`);
 }
+
+export interface SafeFetchBufferOptions {
+  method?: "GET" | "POST" | "HEAD";
+  headers?: Record<string, string>;
+  body?: string | Buffer;
+  timeoutMs?: number;
+  maxRedirects?: number;
+  maxResponseSizeBytes?: number;
+  allowPrivateForTest?: boolean;
+}
+
+export interface SafeFetchBufferResponse {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  buffer: Buffer;
+  durationMs: number;
+  resolvedIp?: string;
+}
+
+/**
+ * Safe binary buffer request executor with SSRF protection,
+ * re-validation of each redirect target, timeout enforcement, and memory size limits.
+ */
+export async function safeFetchBuffer(
+  url: string,
+  options: SafeFetchBufferOptions = {}
+): Promise<SafeFetchBufferResponse> {
+  const {
+    method = "GET",
+    headers = {},
+    body,
+    timeoutMs = 15000,
+    maxRedirects = 5,
+    maxResponseSizeBytes = 15 * 1024 * 1024, // 15MB default for images
+    allowPrivateForTest = process.env.ALLOW_PRIVATE_NETWORK === "true",
+  } = options;
+
+  let currentUrl = url;
+  let redirectCount = 0;
+  const startTime = Date.now();
+
+  while (redirectCount <= maxRedirects) {
+    const validation = await validateSafeUrl(currentUrl, allowPrivateForTest);
+    if (!validation.safe || !validation.parsedUrl) {
+      throw new Error(`SSRF Prevention Block: ${validation.error}`);
+    }
+
+    const parsedUrl = validation.parsedUrl;
+    const isHttps = parsedUrl.protocol === "https:";
+    const transport = isHttps ? https : http;
+
+    const requestHeaders: Record<string, string> = {
+      "User-Agent": "MangaCMS-SafeImageProxy/1.0",
+      Accept: "image/avif,image/webp,image/apng,image/jpeg,image/png,image/*,*/*;q=0.8",
+      ...headers,
+    };
+
+    const requestPromise = new Promise<{
+      isRedirect: boolean;
+      redirectUrl?: string;
+      result?: SafeFetchBufferResponse;
+    }>((resolve, reject) => {
+      const req = transport.request(
+        parsedUrl,
+        {
+          method,
+          headers: requestHeaders,
+          timeout: timeoutMs,
+        },
+        (res) => {
+          if (
+            res.statusCode &&
+            [301, 302, 303, 307, 308].includes(res.statusCode) &&
+            res.headers.location
+          ) {
+            res.resume();
+            const nextUrl = new URL(res.headers.location, currentUrl).toString();
+            resolve({ isRedirect: true, redirectUrl: nextUrl });
+            return;
+          }
+
+          const chunks: Buffer[] = [];
+          let byteCount = 0;
+
+          res.on("data", (chunk: Buffer) => {
+            byteCount += chunk.length;
+            if (byteCount > maxResponseSizeBytes) {
+              req.destroy();
+              reject(new Error(`RESPONSE_TOO_LARGE: Response body size exceeded maximum limit of ${maxResponseSizeBytes} bytes`));
+              return;
+            }
+            chunks.push(chunk);
+          });
+
+          res.on("end", () => {
+            const rawHeaders: Record<string, string> = {};
+            for (const [key, val] of Object.entries(res.headers)) {
+              if (val !== undefined) {
+                rawHeaders[key] = Array.isArray(val) ? val.join(", ") : val;
+              }
+            }
+
+            resolve({
+              isRedirect: false,
+              result: {
+                status: res.statusCode || 200,
+                statusText: res.statusMessage || "OK",
+                headers: rawHeaders,
+                buffer: Buffer.concat(chunks),
+                durationMs: Date.now() - startTime,
+                resolvedIp: validation.resolvedIp,
+              },
+            });
+          });
+        }
+      );
+
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error(`TIMEOUT: Request timed out after ${timeoutMs}ms`));
+      });
+
+      req.on("error", (err) => {
+        reject(err);
+      });
+
+      if (body) {
+        req.write(body);
+      }
+      req.end();
+    });
+
+    const step = await requestPromise;
+    if (step.isRedirect && step.redirectUrl) {
+      currentUrl = step.redirectUrl;
+      redirectCount++;
+      continue;
+    }
+
+    if (step.result) {
+      return step.result;
+    }
+  }
+
+  throw new Error(`MAX_REDIRECTS_EXCEEDED: Exceeded maximum redirect count of ${maxRedirects}`);
+}

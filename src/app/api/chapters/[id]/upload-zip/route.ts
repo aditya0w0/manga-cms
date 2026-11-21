@@ -30,7 +30,25 @@ export async function POST(
       report,
     });
   } catch (err: any) {
+    const message = err?.message || String(err);
+    if (message.includes("Unauthorized") || message.includes("UNAUTHORIZED")) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (message.includes("Forbidden") || message.includes("FORBIDDEN")) {
+      return NextResponse.json({ error: message }, { status: 403 });
+    }
+    if (message.includes("not found") || message.includes("NOT_FOUND")) {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+    if (
+      message.includes("ZIP_BOMB") ||
+      message.includes("SECURITY_VIOLATION") ||
+      message.includes("INVALID") ||
+      message.includes("FILE_TOO_LARGE")
+    ) {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
     console.error("ZIP chapter upload error:", err);
-    return NextResponse.json({ error: err.message || "Failed to process ZIP upload" }, { status: 500 });
+    return NextResponse.json({ error: message || "Failed to process ZIP upload" }, { status: 500 });
   }
 }
