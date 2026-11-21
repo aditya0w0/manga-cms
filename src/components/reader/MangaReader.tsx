@@ -99,6 +99,89 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
   const progressDebounceTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Smooth scroll controller for keyboard navigation (Spacebar / PageDown / PageUp)
+  const smoothScrollRef = useRef<{
+    animId: number | null;
+    targetY: number;
+    startTime: number;
+    startY: number;
+    duration: number;
+  }>({
+    animId: null,
+    targetY: 0,
+    startTime: 0,
+    startY: 0,
+    duration: 480,
+  });
+
+  const triggerSmoothScroll = useCallback((delta: number, customDuration: number = 480) => {
+    if (typeof window === "undefined") return;
+
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    const currentY = window.scrollY;
+
+    // Build upon current target if an animation is already in progress to avoid jarring jumps
+    const isAnimating = smoothScrollRef.current.animId !== null;
+    const base = isAnimating ? smoothScrollRef.current.targetY : currentY;
+    const targetY = Math.max(0, Math.min(base + delta, maxScroll));
+
+    if (targetY === currentY && !isAnimating) return;
+
+    if (smoothScrollRef.current.animId !== null) {
+      cancelAnimationFrame(smoothScrollRef.current.animId);
+    }
+
+    const startY = currentY;
+    const startTime = performance.now();
+    smoothScrollRef.current = {
+      animId: null,
+      targetY,
+      startTime,
+      startY,
+      duration: customDuration,
+    };
+
+    // Smooth cubic deceleration curve for comfortable reading transitions
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / customDuration, 1);
+      const eased = easeOutCubic(progress);
+
+      window.scrollTo(0, startY + (targetY - startY) * eased);
+
+      if (progress < 1) {
+        smoothScrollRef.current.animId = requestAnimationFrame(step);
+      } else {
+        smoothScrollRef.current.animId = null;
+      }
+    };
+
+    smoothScrollRef.current.animId = requestAnimationFrame(step);
+  }, []);
+
+  // Hand back scroll control immediately if user uses mouse wheel or touches screen
+  useEffect(() => {
+    const handleUserInterruption = () => {
+      if (smoothScrollRef.current.animId !== null) {
+        cancelAnimationFrame(smoothScrollRef.current.animId);
+        smoothScrollRef.current.animId = null;
+      }
+    };
+
+    window.addEventListener("wheel", handleUserInterruption, { passive: true });
+    window.addEventListener("touchstart", handleUserInterruption, { passive: true });
+
+    return () => {
+      window.removeEventListener("wheel", handleUserInterruption);
+      window.removeEventListener("touchstart", handleUserInterruption);
+      if (smoothScrollRef.current.animId !== null) {
+        cancelAnimationFrame(smoothScrollRef.current.animId);
+      }
+    };
+  }, []);
+
   const handleImageError = (
     e: React.SyntheticEvent<HTMLImageElement>,
     pageNumber: number,
@@ -240,11 +323,22 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     };
   }, [autoHideNavbar, setShowControls]);
 
-  // Global Keyboard Navigation (with Arrow Support for Next/Prev Chapters)
+  // Global Keyboard Navigation (with Arrow, Space, PageDown/Up Support)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in input or textarea
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+
+      if (e.key === "Escape") {
+        if (isSettingsOpen) setIsSettingsOpen(false);
+        if (isChapterListOpen) setIsChapterListOpen(false);
+        return;
+      }
+
+      // If settings or chapter dialog is open, do not handle reader navigation shortcuts
+      if (isSettingsOpen || isChapterListOpen) {
         return;
       }
 
@@ -254,6 +348,93 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
       const isFirstPage = isPaginated && currentPage <= 1;
 
       switch (e.key) {
+        case " ":
+        case "Space":
+        case "Spacebar": {
+          e.preventDefault();
+          // Scroll distance calibrated to 68% viewport height for optimal panel overlapping
+          const distance = Math.round(window.innerHeight * 0.68);
+          const isScrollableMode = readingMode === "VERTICAL_SCROLL" || readingMode === "WEBTOON";
+
+          if (isScrollableMode) {
+            const isAtBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 60;
+            if (isAtBottom && !e.shiftKey) {
+              if (chapter.nextChapter) {
+                router.push(`/read/${chapter.nextChapter.id}`);
+              }
+              break;
+            }
+
+            if (e.shiftKey) {
+              if (smoothScroll) {
+                triggerSmoothScroll(-distance, 480);
+              } else {
+                window.scrollBy({ top: -distance, behavior: "auto" });
+              }
+            } else {
+              if (smoothScroll) {
+                triggerSmoothScroll(distance, 480);
+              } else {
+                window.scrollBy({ top: distance, behavior: "auto" });
+              }
+            }
+          } else {
+            // Paginated mode (Single or Double Page)
+            const isAtBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 30;
+            const isAtTop = window.scrollY <= 10;
+
+            if (e.shiftKey) {
+              if (!isAtTop) {
+                if (smoothScroll) {
+                  triggerSmoothScroll(-distance, 480);
+                } else {
+                  window.scrollBy({ top: -distance, behavior: "auto" });
+                }
+              } else {
+                prevPage();
+              }
+            } else {
+              if (!isAtBottom) {
+                if (smoothScroll) {
+                  triggerSmoothScroll(distance, 480);
+                } else {
+                  window.scrollBy({ top: distance, behavior: "auto" });
+                }
+              } else {
+                if (isLastPage && chapter.nextChapter) {
+                  router.push(`/read/${chapter.nextChapter.id}`);
+                } else {
+                  nextPage();
+                  window.scrollTo({ top: 0, behavior: "instant" });
+                }
+              }
+            }
+          }
+          break;
+        }
+
+        case "PageDown": {
+          e.preventDefault();
+          const distance = Math.round(window.innerHeight * 0.68);
+          if (smoothScroll) {
+            triggerSmoothScroll(distance, 480);
+          } else {
+            window.scrollBy({ top: distance, behavior: "auto" });
+          }
+          break;
+        }
+
+        case "PageUp": {
+          e.preventDefault();
+          const distance = Math.round(window.innerHeight * 0.68);
+          if (smoothScroll) {
+            triggerSmoothScroll(-distance, 480);
+          } else {
+            window.scrollBy({ top: -distance, behavior: "auto" });
+          }
+          break;
+        }
+
         case "ArrowRight":
           if (isRTL) {
             if (isFirstPage && chapter.prevChapter) {
@@ -327,6 +508,10 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
     chapter.prevChapter,
     chapter.nextChapter,
     router,
+    smoothScroll,
+    triggerSmoothScroll,
+    isSettingsOpen,
+    isChapterListOpen,
   ]);
 
   const handleRetryImage = (pageNumber: number) => {
@@ -1010,6 +1195,12 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 Keyboard Shortcuts
               </label>
               <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] flex items-center justify-between col-span-2">
+                  <span className="text-neutral-300">Smooth Scroll Down / Up</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-white/15 text-neutral-200 font-mono text-[11px]">
+                    Space / Shift+Space
+                  </kbd>
+                </div>
                 <div className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] flex items-center justify-between">
                   <span className="text-neutral-300">Page or Chapter</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-white/15 text-neutral-200 font-mono text-[11px]">
