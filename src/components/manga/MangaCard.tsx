@@ -69,8 +69,8 @@ export function MangaCard({
             onError={handleError}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-950/40 via-surface to-black/60 text-muted-foreground">
-            <BookOpen className="h-10 w-10 opacity-30 text-sky-400" />
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-950/40 via-surface to-black/60 text-muted-foreground">
+            <BookOpen className="h-10 w-10 opacity-30 text-blue-400" />
           </div>
         )}
 
@@ -80,7 +80,7 @@ export function MangaCard({
         {/* Top badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1">
           {contentType && (
-            <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full liquid-glass-pill text-sky-300 border-white/20 shadow-sm">
+            <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full liquid-glass-pill text-blue-200 border-white/20 shadow-sm">
               {contentType}
             </span>
           )}
@@ -98,7 +98,7 @@ export function MangaCard({
         {/* Bottom details inside card */}
         <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-xs text-muted-foreground">
           {latestChapter ? (
-            <span className="font-bold text-white bg-gradient-to-r from-sky-500/90 to-blue-600/90 backdrop-blur-xl px-2.5 py-0.5 rounded-full text-[10px] border border-white/30 shadow-sm">
+            <span className="font-bold text-white bg-gradient-to-r from-blue-600/90 to-indigo-600/90 backdrop-blur-xl px-2.5 py-0.5 rounded-full text-[10px] border border-white/30 shadow-sm">
               Ch. {latestChapter.chapterNumber}
             </span>
           ) : (
@@ -115,7 +115,7 @@ export function MangaCard({
 
       {/* Meta text below card */}
       <div className="mt-2.5 flex flex-col space-y-1">
-        <h4 className="font-bold text-sm text-foreground line-clamp-1 transition-colors group-hover:text-sky-400">
+        <h4 className="font-bold text-sm text-foreground line-clamp-1 transition-colors group-hover:text-blue-400">
           {title}
         </h4>
 

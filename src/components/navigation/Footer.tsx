@@ -11,10 +11,10 @@ export function Footer() {
           <div className="md:col-span-6 space-y-3">
             <Link href="/" className="inline-flex items-center space-x-2.5 group">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl liquid-glass text-white border border-white/25 shadow-md group-hover:scale-105 transition-transform">
-                <BookOpen className="h-4 w-4 text-sky-400" />
+                <BookOpen className="h-4 w-4 text-blue-400" />
               </div>
               <span className="font-extrabold text-base tracking-tight text-foreground">
-                MANGA<span className="text-sky-400 font-black">CMS</span>
+                MANGA<span className="text-blue-400 font-black">CMS</span>
               </span>
             </Link>
             <p className="text-xs text-slate-300 leading-relaxed max-w-md">

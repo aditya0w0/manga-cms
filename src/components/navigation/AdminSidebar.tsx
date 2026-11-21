@@ -102,12 +102,12 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 border border-white/25 text-white font-bold shadow-md shadow-sky-500/20">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/25 text-white font-bold shadow-md shadow-blue-500/20">
               <Shield className="h-4 w-4" />
             </div>
             <div>
               <span className="text-sm font-bold text-foreground">
-                Manga<span className="text-sky-400 font-extrabold">CMS</span>
+                Manga<span className="text-blue-400 font-extrabold">CMS</span>
               </span>
             </div>
           </div>
@@ -150,13 +150,13 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
                     aria-current={isActive ? "page" : undefined}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                       isActive
-                        ? "bg-sky-500/15 border border-sky-400/30 text-sky-300 font-semibold shadow-sm"
+                        ? "bg-blue-600/15 border border-blue-400/30 text-blue-200 font-semibold shadow-sm"
                         : "text-slate-300 hover:text-foreground hover:bg-white/[0.06]"
                     }`}
                   >
                     <Icon
                       className={`h-4 w-4 transition-colors ${
-                        isActive ? "text-sky-400" : "text-slate-400"
+                        isActive ? "text-blue-400" : "text-slate-400"
                       }`}
                     />
                     <span>{item.name}</span>

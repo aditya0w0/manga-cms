@@ -16,13 +16,20 @@ export function Dialog({ open, onOpenChange, children, className }: DialogProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Liquid Glass Optical Backdrop */}
+      {/* Liquid Glass Translucent Optical Backdrop */}
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-xl animate-in fade-in duration-200"
+        className="fixed inset-0 bg-[#06080D]/60 backdrop-blur-md animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
+      {/* Atmospheric Backlight: Shines behind the elevated liquid glass to illuminate optical refraction */}
+      <div
+        className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center p-4 overflow-hidden"
+        aria-hidden="true"
+      >
+        <div className="w-[560px] h-[440px] rounded-full bg-gradient-to-tr from-blue-600/25 via-indigo-500/15 to-transparent blur-3xl opacity-75" />
+      </div>
       {/* Dialog content wrapper */}
-      <div className={cn("relative z-50 w-full max-w-lg rounded-2xl liquid-glass-obsidian border border-white/20 p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto", className)}>
+      <div className={cn("relative z-50 w-full max-w-lg rounded-3xl liquid-glass-elevated border border-white/25 p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto", className)}>
         <button
           onClick={() => onOpenChange(false)}
           className="absolute right-4 top-4 p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/[0.08] transition-colors focus:outline-none"

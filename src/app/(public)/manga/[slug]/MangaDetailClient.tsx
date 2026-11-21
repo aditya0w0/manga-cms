@@ -198,7 +198,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-white/[0.05] text-muted-foreground">
-                  <BookOpen className="h-12 w-12 opacity-30 text-cyan-400" />
+                  <BookOpen className="h-12 w-12 opacity-30 text-blue-400" />
                 </div>
               )}
             </div>
@@ -207,7 +207,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
             <div className="flex-1 flex flex-col space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 {manga.contentType && (
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full liquid-glass-pill text-sky-300">
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full liquid-glass-pill text-blue-200 border-blue-400/30 bg-blue-950/30">
                     {manga.contentType}
                   </span>
                 )}
@@ -221,8 +221,8 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                     {manga.releaseYear}
                   </span>
                 )}
-                <span className="text-xs text-emerald-400 font-medium px-3 py-1 rounded-full liquid-glass-pill flex items-center gap-1.5 border-emerald-500/30">
-                  <ShieldCheck className="h-3.5 w-3.5" />
+                <span className="text-xs text-slate-300 font-medium px-3 py-1 rounded-full liquid-glass-pill flex items-center gap-1.5 border-white/15">
+                  <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
                   Self-Hosted Library
                 </span>
               </div>
@@ -264,7 +264,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {manga.genres.map((g: any) => (
                     <Link key={g.genre.slug} href={`/browse?genre=${g.genre.slug}`}>
-                      <span className="text-xs font-medium text-slate-300 liquid-glass-pill hover:text-cyan-300 transition-all px-3 py-1">
+                      <span className="text-xs font-medium text-slate-300 liquid-glass-pill hover:text-blue-300 hover:border-blue-400/30 transition-all px-3 py-1">
                         {g.genre.name}
                       </span>
                     </Link>
@@ -276,7 +276,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
               <div className="flex flex-wrap items-center gap-3 pt-3">
                 {firstChapter ? (
                   <Link href={`/read/${firstChapter.id}`}>
-                    <Button size="lg" className="font-bold gap-2 shadow-[0_0_24px_rgba(14,165,233,0.35)]">
+                    <Button size="lg" className="font-bold gap-2 shadow-[0_0_24px_rgba(37,99,235,0.35)]">
                       <BookOpen className="h-5 w-5" />
                       Start Reading (Ch. {firstChapter.chapterNumber})
                     </Button>
@@ -287,20 +287,20 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                   </Button>
                 )}
 
-                {/* Bookmark Toggle Button */}
+                {/* Bookmark Toggle Button (Warm Amber Focus Accent) */}
                 <Button
                   variant="outline"
                   size="default"
                   onClick={() => toggleBookmark(manga.id, Boolean(user))}
                   className={`gap-1.5 liquid-glass-pill transition-all ${
                     bookmarkedIds.has(manga.id)
-                      ? "text-emerald-300 border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                      : "text-slate-300 hover:border-emerald-500/40"
+                      ? "text-amber-300 border-amber-500/40 bg-amber-500/15 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+                      : "text-slate-300 hover:border-amber-500/40 hover:text-amber-300"
                   }`}
                 >
                   <Bookmark
                     className={`h-4 w-4 ${
-                      bookmarkedIds.has(manga.id) ? "fill-emerald-400 text-emerald-400" : ""
+                      bookmarkedIds.has(manga.id) ? "fill-amber-400 text-amber-400" : ""
                     }`}
                   />
                   {bookmarkedIds.has(manga.id) ? "Bookmarked" : "Bookmark"}
@@ -331,7 +331,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                 </Button>
 
                 {/* Share Button */}
-                <Button variant="outline" size="default" onClick={handleShare} className="gap-1.5 liquid-glass-pill hover:border-cyan-500/40 text-slate-300">
+                <Button variant="outline" size="default" onClick={handleShare} className="gap-1.5 liquid-glass-pill hover:border-blue-400/40 text-slate-300">
                   <Share2 className="h-4 w-4" />
                   {shareCopied ? "Link Copied!" : "Share"}
                 </Button>
@@ -365,7 +365,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
           <div>
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Layers className="h-5 w-5 text-cyan-400" />
+              <Layers className="h-5 w-5 text-blue-400" />
               Chapter List ({chapters.length})
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -391,7 +391,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
               variant="outline"
               size="sm"
               onClick={() => setSortAsc(!sortAsc)}
-              className="gap-1.5 text-xs h-9 liquid-glass-pill hover:border-cyan-500/40 text-slate-300"
+              className="gap-1.5 text-xs h-9 liquid-glass-pill hover:border-blue-400/40 text-slate-300"
             >
               <ArrowUpDown className="h-3.5 w-3.5" />
               {sortAsc ? "Oldest First" : "Newest First"}
@@ -406,10 +406,10 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
               <Link
                 key={ch.id}
                 href={`/read/${ch.id}`}
-                className="group flex items-center justify-between p-3.5 rounded-2xl liquid-glass-card hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all duration-200"
+                className="group flex items-center justify-between p-3.5 rounded-2xl liquid-glass-card hover:border-blue-500/40 hover:bg-blue-500/5 transition-all duration-200"
               >
                 <div className="flex flex-col space-y-0.5">
-                  <span className="text-sm font-bold text-foreground group-hover:text-cyan-400 transition-colors">
+                  <span className="text-sm font-bold text-foreground group-hover:text-blue-400 transition-colors">
                     Chapter {ch.chapterNumber}
                   </span>
                   {ch.chapterTitle && (
@@ -424,7 +424,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                     <span className="hidden sm:inline font-mono">{formatDate(ch.releaseDate)}</span>
                   )}
                   {ch._count?.pages ? (
-                    <span className="px-2.5 py-0.5 rounded-full liquid-glass-pill font-mono text-[10px] text-cyan-400">
+                    <span className="px-2.5 py-0.5 rounded-full liquid-glass-pill font-mono text-[10px] text-blue-300">
                       {ch._count.pages}p
                     </span>
                   ) : null}
@@ -456,7 +456,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
             <select
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
-              className="w-full h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+              className="w-full h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-blue-400/50"
             >
               <option value="INCORRECT_METADATA" className="bg-[#0f141c] text-white">Incorrect title or author info</option>
               <option value="BROKEN_IMAGES" className="bg-[#0f141c] text-white">Missing or broken chapter images</option>
@@ -474,7 +474,7 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
               placeholder="Describe the issue in detail..."
               value={reportDescription}
               onChange={(e) => setReportDescription(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] p-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] p-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-blue-400/50"
             />
           </div>
         </div>

@@ -579,12 +579,12 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
       case "BLACK":
         return "bg-black text-white";
       case "GRAY":
-        return "bg-neutral-800 text-neutral-100";
+        return "bg-[#1A1F2C] text-neutral-100";
       case "LIGHT":
-        return "bg-neutral-100 text-neutral-900";
+        return "bg-[#F4F6F9] text-neutral-900";
       case "DARK":
       default:
-        return "bg-[#0B0D12] text-white";
+        return "bg-[#06080D] bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(59,130,246,0.12)_0%,transparent_60%)] text-white";
     }
   };
 
@@ -657,7 +657,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 <span className="hidden sm:inline font-bold">{chapter.manga.title}</span>
               </Button>
             </Link>
-            <span className="text-xs font-bold text-cyan-400 px-3 py-1 rounded-full liquid-glass-pill font-mono">
+            <span className="text-xs font-bold text-blue-300 px-3 py-1 rounded-full liquid-glass-pill font-mono border border-blue-400/30 bg-blue-500/10">
               Ch. {chapter.chapterNumber}
             </span>
             {chapter.chapterTitle && (
@@ -673,7 +673,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               variant="ghost"
               size="sm"
               onClick={() => setIsChapterListOpen(true)}
-              className="h-8 text-xs gap-1.5 text-white liquid-glass-pill px-3 hover:border-cyan-400/40"
+              className="h-8 text-xs gap-1.5 text-white liquid-glass-pill px-3 hover:border-blue-400/40"
             >
               <List className="h-4 w-4" />
               <span className="hidden sm:inline">Chapters</span>
@@ -683,7 +683,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               variant="ghost"
               size="sm"
               onClick={() => setIsSettingsOpen(true)}
-              className="h-8 text-xs gap-1.5 text-white liquid-glass-pill px-3 hover:border-cyan-400/40"
+              className="h-8 text-xs gap-1.5 text-white liquid-glass-pill px-3 hover:border-blue-400/40"
             >
               <Sliders className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -693,7 +693,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               variant="ghost"
               size="sm"
               onClick={toggleFullscreen}
-              className="h-8 text-white liquid-glass-pill px-2.5 hover:border-cyan-400/40"
+              className="h-8 text-white liquid-glass-pill px-2.5 hover:border-blue-400/40"
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
@@ -892,7 +892,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
           <div className="flex items-center space-x-2">
             {chapter.prevChapter ? (
               <Link href={`/read/${chapter.prevChapter.id}`}>
-                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 liquid-glass-pill text-white hover:border-cyan-400/40 px-3">
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 liquid-glass-pill text-white hover:border-blue-400/40 px-3">
                   <ChevronLeft className="h-4 w-4" /> Prev Chapter
                 </Button>
               </Link>
@@ -904,7 +904,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
 
             {chapter.nextChapter ? (
               <Link href={`/read/${chapter.nextChapter.id}`}>
-                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 liquid-glass-pill text-white hover:border-cyan-400/40 px-3">
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 liquid-glass-pill text-white hover:border-blue-400/40 px-3">
                   Next Chapter <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -929,7 +929,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               </Button>
 
               <div className="flex items-center space-x-1.5 text-xs font-mono font-bold px-3.5 py-1 rounded-full liquid-glass-pill">
-                <span className="text-cyan-400">{currentPage}</span>
+                <span className="text-blue-300">{currentPage}</span>
                 <span className="text-white/40">/</span>
                 <span className="text-white/80">{chapter.pages.length}</span>
               </div>
@@ -980,7 +980,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             onClick={() => setSettingsTab("layout")}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
               settingsTab === "layout"
-                ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                ? "bg-blue-600/20 text-blue-200 border border-blue-400/40 shadow-[0_0_12px_rgba(59,130,246,0.18)]"
                 : "text-neutral-400 hover:text-white"
             }`}
           >
@@ -992,7 +992,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             onClick={() => setSettingsTab("appearance")}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
               settingsTab === "appearance"
-                ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                ? "bg-blue-600/20 text-blue-200 border border-blue-400/40 shadow-[0_0_12px_rgba(59,130,246,0.18)]"
                 : "text-neutral-400 hover:text-white"
             }`}
           >
@@ -1004,7 +1004,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
             onClick={() => setSettingsTab("behavior")}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
               settingsTab === "behavior"
-                ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                ? "bg-blue-600/20 text-blue-200 border border-blue-400/40 shadow-[0_0_12px_rgba(59,130,246,0.18)]"
                 : "text-neutral-400 hover:text-white"
             }`}
           >
@@ -1033,11 +1033,11 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                     onClick={() => setReadingMode(m.id as ReadingMode)}
                     className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-0.5 ${
                       readingMode === m.id
-                        ? "border-sky-400 bg-sky-500/15 text-white shadow-sm"
-                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                        ? "border-blue-400/45 bg-blue-500/15 text-white shadow-[inset_0_1px_1px_rgba(147,197,253,0.35),0_2px_12px_rgba(37,99,235,0.20)]"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06] hover:border-white/20"
                     }`}
                   >
-                    <span className={`font-semibold ${readingMode === m.id ? "text-sky-300" : "text-white"}`}>
+                    <span className={`font-semibold ${readingMode === m.id ? "text-blue-200" : "text-white"}`}>
                       {m.label}
                     </span>
                     <span className="text-[11px] text-neutral-400 line-clamp-1">{m.desc}</span>
@@ -1062,8 +1062,8 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                     onClick={() => setReadingDirection(d.id as ReadingDirection)}
                     className={`py-2 px-3 rounded-xl border text-center font-medium transition-all ${
                       readingDirection === d.id
-                        ? "border-sky-400 bg-sky-500/15 text-sky-200 shadow-sm"
-                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                        ? "border-blue-400/45 bg-blue-500/15 text-blue-200 shadow-[inset_0_1px_1px_rgba(147,197,253,0.35),0_2px_12px_rgba(37,99,235,0.20)]"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06] hover:border-white/20"
                     }`}
                   >
                     {d.label}
@@ -1079,7 +1079,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                     <span className="font-semibold text-white">Page Gap</span>
                     <p className="text-[11px] text-neutral-400">Vertical separation between consecutive pages</p>
                   </div>
-                  <span className="font-mono text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-400/30 px-2 py-0.5 rounded-md">
+                  <span className="font-mono text-xs font-bold text-blue-300 bg-blue-500/15 border border-blue-400/30 px-2.5 py-0.5 rounded-md">
                     {pageGap}px
                   </span>
                 </div>
@@ -1090,7 +1090,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                   step="2"
                   value={pageGap}
                   onChange={(e) => setPageGap(Number(e.target.value))}
-                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                 />
                 <div className="flex items-center gap-2 pt-0.5">
                   <span className="text-[11px] text-neutral-400 mr-1">Presets:</span>
@@ -1106,7 +1106,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                       onClick={() => setPageGap(p.val)}
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors ${
                         pageGap === p.val
-                          ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                          ? "border-blue-400/45 bg-blue-500/20 text-blue-200"
                           : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
                       }`}
                     >
@@ -1133,8 +1133,8 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                     onClick={() => setImageScaling(s.id as ImageScaling)}
                     className={`py-2 px-3 rounded-xl border text-center font-medium transition-all ${
                       imageScaling === s.id
-                        ? "border-sky-400 bg-sky-500/15 text-sky-200 shadow-sm"
-                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                        ? "border-blue-400/45 bg-blue-500/15 text-blue-200 shadow-[inset_0_1px_1px_rgba(147,197,253,0.35),0_2px_12px_rgba(37,99,235,0.20)]"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06] hover:border-white/20"
                     }`}
                   >
                     {s.label}
@@ -1154,10 +1154,10 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: "DARK", label: "Dark Obsidian", color: "#0B0D12", border: "border-neutral-700" },
+                  { id: "DARK", label: "Dark Obsidian", color: "#06080D", border: "border-neutral-700" },
                   { id: "BLACK", label: "Pure OLED Black", color: "#000000", border: "border-neutral-800" },
-                  { id: "GRAY", label: "Charcoal Slate", color: "#262626", border: "border-neutral-600" },
-                  { id: "LIGHT", label: "Clean Paper", color: "#F5F5F5", border: "border-neutral-300" },
+                  { id: "GRAY", label: "Charcoal Slate", color: "#1A1F2C", border: "border-neutral-600" },
+                  { id: "LIGHT", label: "Clean Paper", color: "#F4F6F9", border: "border-neutral-300" },
                 ].map((b) => (
                   <button
                     key={b.id}
@@ -1165,8 +1165,8 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                     onClick={() => setBackgroundColor(b.id as ReaderBg)}
                     className={`p-2.5 rounded-xl border flex items-center gap-2.5 transition-all ${
                       backgroundColor === b.id
-                        ? "border-sky-400 bg-sky-500/15 text-white shadow-sm"
-                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06]"
+                        ? "border-blue-400/45 bg-blue-500/15 text-white shadow-[inset_0_1px_1px_rgba(147,197,253,0.35),0_2px_12px_rgba(37,99,235,0.20)]"
+                        : "border-white/10 bg-white/[0.02] text-neutral-300 hover:bg-white/[0.06] hover:border-white/20"
                     }`}
                   >
                     <span
@@ -1189,7 +1189,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 onClick={() => setShowPageNumbers(!showPageNumbers)}
                 className={`px-3 py-1.5 rounded-xl font-medium border transition-colors ${
                   showPageNumbers
-                    ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                    ? "border-blue-400/45 bg-blue-500/20 text-blue-200 shadow-sm"
                     : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
                 }`}
               >
@@ -1226,7 +1226,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 onClick={() => setAutoHideNavbar(!autoHideNavbar)}
                 className={`px-3 py-1.5 rounded-xl font-medium border transition-colors ${
                   autoHideNavbar
-                    ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                    ? "border-blue-400/45 bg-blue-500/20 text-blue-200 shadow-sm"
                     : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
                 }`}
               >
@@ -1244,7 +1244,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                 onClick={() => setSmoothScroll(!smoothScroll)}
                 className={`px-3 py-1.5 rounded-xl font-medium border transition-colors ${
                   smoothScroll
-                    ? "border-sky-400 bg-sky-500/20 text-sky-200"
+                    ? "border-blue-400/45 bg-blue-500/20 text-blue-200 shadow-sm"
                     : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
                 }`}
               >
@@ -1270,7 +1270,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
                       onClick={() => setScrollSpeed(p.id as any)}
                       className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center gap-0.5 ${
                         scrollSpeed === p.id
-                          ? "border-sky-400 bg-sky-500/20 text-sky-200 shadow-sm"
+                          ? "border-blue-400/45 bg-blue-500/20 text-blue-200 shadow-sm"
                           : "border-white/10 text-neutral-400 hover:text-white hover:bg-white/[0.06]"
                       }`}
                     >
@@ -1326,7 +1326,7 @@ export function MangaReader({ chapter }: { chapter: ChapterReaderData }) {
           <Button
             size="sm"
             onClick={() => setIsSettingsOpen(false)}
-            className="liquid-glass-btn-primary px-4 py-1.5 text-xs font-semibold"
+            className="liquid-glass-btn-primary px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 border border-blue-400/50 shadow-[0_4px_16px_rgba(37,99,235,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]"
           >
             Save & Close
           </Button>

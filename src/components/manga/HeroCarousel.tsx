@@ -77,7 +77,7 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
           {/* Format, Chapter & Rating Badges */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {current.contentType && (
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full liquid-glass-chip text-sky-300">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full liquid-glass-chip text-blue-200 border-white/20">
                 {current.contentType}
               </span>
             )}

@@ -59,7 +59,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/browse?sortBy=updated"
-              className="text-xs font-semibold text-slate-300 hover:text-sky-400 transition-colors"
+              className="text-xs font-semibold text-slate-300 hover:text-blue-400 transition-colors"
             >
               View All Updates
             </Link>
@@ -87,7 +87,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/browse?sortBy=popularity"
-              className="text-xs font-semibold text-slate-300 hover:text-sky-400 transition-colors"
+              className="text-xs font-semibold text-slate-300 hover:text-blue-400 transition-colors"
             >
               Browse Catalog
             </Link>
@@ -145,7 +145,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/browse?sortBy=rating"
-              className="text-xs font-semibold text-slate-300 hover:text-sky-400 transition-colors"
+              className="text-xs font-semibold text-slate-300 hover:text-blue-400 transition-colors"
             >
               All Top Rated
             </Link>
@@ -165,7 +165,7 @@ export default async function HomePage() {
         recentlyUpdated.length === 0 &&
         topRated.items.length === 0 && (
           <section className="py-24 text-center space-y-4 rounded-3xl liquid-glass liquid-glass-glare border border-white/10 p-8">
-            <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl liquid-glass text-sky-400 border border-white/20 shadow-lg">
+            <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl liquid-glass text-blue-400 border border-white/20 shadow-lg">
               <BookOpen className="h-7 w-7" />
             </div>
             <div className="space-y-1.5 max-w-md mx-auto">

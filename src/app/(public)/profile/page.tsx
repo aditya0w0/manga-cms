@@ -351,7 +351,7 @@ export default function UserProfilePage() {
     return (
       <div className="py-20 flex flex-col items-center justify-center text-center space-y-4 max-w-md mx-auto">
         <div className="p-4 rounded-full bg-primary/10 text-primary">
-          <User className="h-10 w-10 text-sky-400" />
+          <User className="h-10 w-10 text-blue-400" />
         </div>
         <h2 className="text-2xl font-bold text-foreground">Sign In to View Your Profile</h2>
         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -373,11 +373,11 @@ export default function UserProfilePage() {
     <div className="space-y-8 pb-20">
       {/* Profile Header Hero */}
       <div className="relative rounded-3xl liquid-glass p-6 sm:p-8 border border-white/10 overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4 sm:gap-6">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shrink-0 border-2 border-sky-400/30 bg-black/50 shadow-inner flex items-center justify-center">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shrink-0 border-2 border-blue-400/30 bg-black/50 shadow-inner flex items-center justify-center">
               {user.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -386,7 +386,7 @@ export default function UserProfilePage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="text-2xl sm:text-3xl font-extrabold text-sky-400">
+                <div className="text-2xl sm:text-3xl font-extrabold text-blue-400">
                   {user.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -397,7 +397,7 @@ export default function UserProfilePage() {
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
                   {user.username}
                 </h1>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono border border-sky-500/30">
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300 font-mono border border-blue-400/30">
                   {user.role}
                 </span>
               </div>
@@ -415,18 +415,18 @@ export default function UserProfilePage() {
               variant="outline"
               size="sm"
               onClick={handleExportData}
-              className="text-xs gap-1.5 border-white/10 hover:border-sky-400/40 liquid-glass-pill"
+              className="text-xs gap-1.5 border-white/10 hover:border-blue-400/40 liquid-glass-pill"
             >
-              <Download className="h-3.5 w-3.5 text-sky-400" />
+              <Download className="h-3.5 w-3.5 text-blue-400" />
               Backup Data
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => switchTab("settings")}
-              className="text-xs gap-1.5 border-white/10 hover:border-sky-400/40 liquid-glass-pill"
+              className="text-xs gap-1.5 border-white/10 hover:border-blue-400/40 liquid-glass-pill"
             >
-              <Settings className="h-3.5 w-3.5 text-cyan-400" />
+              <Settings className="h-3.5 w-3.5 text-slate-400" />
               Settings
             </Button>
           </div>
@@ -450,16 +450,16 @@ export default function UserProfilePage() {
               onClick={() => switchTab(tab.id as ProfileTab)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 isActive
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.25)]"
+                  ? "bg-blue-600/20 text-blue-200 border border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.2)]"
                   : "liquid-glass text-muted-foreground hover:text-foreground hover:border-white/20"
               }`}
             >
-              <Icon className={`h-3.5 w-3.5 ${isActive ? "text-sky-300" : "text-muted-foreground"}`} />
+              <Icon className={`h-3.5 w-3.5 ${isActive ? "text-blue-300" : "text-muted-foreground"}`} />
               <span>{tab.label}</span>
               {tab.count !== null && (
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isActive ? "bg-sky-500/30 text-white" : "bg-white/[0.06] text-muted-foreground"
+                    isActive ? "bg-blue-500/30 text-white" : "bg-white/[0.06] text-muted-foreground"
                   }`}
                 >
                   {tab.count}
@@ -481,25 +481,25 @@ export default function UserProfilePage() {
               {
                 label: "Bookmarks",
                 val: bookmarks.length,
-                color: "text-sky-400",
+                color: "text-amber-400",
                 sub: "Indexed in PostgreSQL",
               },
               {
                 label: "Reading History",
                 val: history.length,
-                color: "text-cyan-400",
+                color: "text-blue-400",
                 sub: "Recorded chapters",
               },
               {
                 label: "Saved in Library",
                 val: libraryItems.length,
-                color: "text-emerald-400",
+                color: "text-slate-200",
                 sub: "Personal catalog",
               },
               {
                 label: "Completed Titles",
                 val: libraryItems.filter((i) => i.status === "COMPLETED").length,
-                color: "text-amber-400",
+                color: "text-emerald-400",
                 sub: "Finished series",
               },
             ].map((stat, i) => (
@@ -523,12 +523,12 @@ export default function UserProfilePage() {
             <div className="rounded-3xl liquid-glass p-6 sm:p-7 border border-white/[0.08] space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-sky-400" />
+                  <Clock className="h-5 w-5 text-blue-400" />
                   Continue Reading
                 </h2>
                 <button
                   onClick={() => switchTab("history")}
-                  className="text-xs font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1"
+                  className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1"
                 >
                   View All History <ChevronRight className="h-3.5 w-3.5" />
                 </button>
@@ -538,7 +538,7 @@ export default function UserProfilePage() {
                 {history.slice(0, 4).map((hist) => (
                   <div
                     key={hist.id}
-                    className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.08] hover:border-sky-500/30 transition-all"
+                    className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.08] hover:border-blue-500/30 transition-all"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-16 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-black/40">
@@ -556,7 +556,7 @@ export default function UserProfilePage() {
                       <div>
                         <Link
                           href={`/manga/${hist.manga.slug}`}
-                          className="font-bold text-sm text-foreground hover:text-sky-400 transition-colors line-clamp-1"
+                          className="font-bold text-sm text-foreground hover:text-blue-400 transition-colors line-clamp-1"
                         >
                           {hist.manga.title}
                         </Link>
@@ -566,7 +566,7 @@ export default function UserProfilePage() {
                         <div className="flex items-center gap-2 mt-1">
                           <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-sky-400 rounded-full"
+                              className="h-full bg-blue-500 rounded-full"
                               style={{ width: `${Math.min(100, hist.percentRead)}%` }}
                             />
                           </div>
@@ -581,7 +581,7 @@ export default function UserProfilePage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs border-white/10 hover:border-sky-500/40 hover:bg-sky-500/10"
+                        className="text-xs border-white/10 hover:border-blue-500/40 hover:bg-blue-500/10 text-slate-200"
                       >
                         Resume
                       </Button>
@@ -597,12 +597,12 @@ export default function UserProfilePage() {
             <div className="rounded-3xl liquid-glass p-6 sm:p-7 border border-white/[0.08] space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                  <Bookmark className="h-5 w-5 text-emerald-400" />
+                  <Bookmark className="h-5 w-5 text-amber-400" />
                   Recent Bookmarks
                 </h2>
                 <button
                   onClick={() => switchTab("bookmarks")}
-                  className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1"
                 >
                   View All Bookmarks <ChevronRight className="h-3.5 w-3.5" />
                 </button>
@@ -612,7 +612,7 @@ export default function UserProfilePage() {
                 {bookmarks.slice(0, 6).map((b) => (
                   <div
                     key={b.id}
-                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.08] hover:border-emerald-500/30 transition-all flex items-center gap-3"
+                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.08] hover:border-amber-500/30 transition-all flex items-center gap-3"
                   >
                     <div className="w-12 h-16 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-black/40">
                       {b.manga.coverUrl ? (
@@ -630,7 +630,7 @@ export default function UserProfilePage() {
                     <div className="flex-1 min-w-0">
                       <Link
                         href={`/manga/${b.manga.slug}`}
-                        className="font-bold text-sm text-foreground hover:text-emerald-400 transition-colors line-clamp-1"
+                        className="font-bold text-sm text-foreground hover:text-amber-400 transition-colors line-clamp-1"
                       >
                         {b.manga.title}
                       </Link>
@@ -640,7 +640,7 @@ export default function UserProfilePage() {
                           : "No chapters"}
                       </p>
                       {b.unreadChapters > 0 ? (
-                        <span className="inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                        <span className="inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono">
                           {b.unreadChapters} new chapters
                         </span>
                       ) : (
@@ -678,7 +678,7 @@ export default function UserProfilePage() {
                   onClick={() => setLibraryFilter(filter.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                     libraryFilter === filter.id
-                      ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
+                      ? "bg-blue-600/20 text-blue-200 border border-blue-400/40"
                       : "liquid-glass text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -704,7 +704,7 @@ export default function UserProfilePage() {
               {filteredLibrary.map((item) => (
                 <div
                   key={item.id}
-                  className="p-4 rounded-2xl liquid-glass border border-white/[0.08] hover:border-sky-500/30 transition-all flex flex-col justify-between gap-3"
+                  className="p-4 rounded-2xl liquid-glass border border-white/[0.08] hover:border-blue-500/30 transition-all flex flex-col justify-between gap-3"
                 >
                   <div className="flex gap-3">
                     <div className="w-16 h-22 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-black/40">
@@ -723,7 +723,7 @@ export default function UserProfilePage() {
                     <div className="flex-1 min-w-0">
                       <Link
                         href={`/manga/${item.manga.slug}`}
-                        className="font-bold text-sm text-foreground hover:text-sky-400 transition-colors line-clamp-1"
+                        className="font-bold text-sm text-foreground hover:text-blue-400 transition-colors line-clamp-1"
                       >
                         {item.manga.title}
                       </Link>
@@ -733,7 +733,7 @@ export default function UserProfilePage() {
                           : "No chapters"}
                       </p>
                       {item.readingProgress && (
-                        <p className="text-[10px] text-sky-400 mt-1 font-mono">
+                        <p className="text-[10px] text-blue-300 mt-1 font-mono">
                           Read up to Ch. {item.readingProgress.chapterNumber} (p. {item.readingProgress.pageNumber})
                         </p>
                       )}
@@ -770,11 +770,11 @@ export default function UserProfilePage() {
             </div>
           ) : (
             <div className="py-16 text-center text-muted-foreground space-y-3 rounded-3xl liquid-glass border border-dashed border-white/10">
-              <BookOpen className="h-10 w-10 mx-auto opacity-30 text-sky-400" />
+              <BookOpen className="h-10 w-10 mx-auto opacity-30 text-blue-400" />
               <p className="text-sm font-semibold text-foreground">No manga found in this list</p>
               <p className="text-xs">Browse the catalog to add titles to your personal reading library.</p>
               <Link href="/browse">
-                <Button size="sm" variant="outline" className="border-white/10 hover:border-sky-500/30">
+                <Button size="sm" variant="outline" className="border-white/10 hover:border-blue-500/30">
                   Browse Catalog
                 </Button>
               </Link>
@@ -819,7 +819,7 @@ export default function UserProfilePage() {
               {filteredBookmarks.map((b) => (
                 <div
                   key={b.id}
-                  className="p-4 rounded-2xl liquid-glass border border-white/[0.08] hover:border-emerald-500/30 transition-all flex flex-col justify-between gap-3"
+                  className="p-4 rounded-2xl liquid-glass border border-white/[0.08] hover:border-amber-500/30 transition-all flex flex-col justify-between gap-3"
                 >
                   <div className="flex gap-3">
                     <div className="w-16 h-22 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-black/40">
@@ -838,7 +838,7 @@ export default function UserProfilePage() {
                     <div className="flex-1 min-w-0">
                       <Link
                         href={`/manga/${b.manga.slug}`}
-                        className="font-bold text-sm text-foreground hover:text-emerald-400 transition-colors line-clamp-1"
+                        className="font-bold text-sm text-foreground hover:text-amber-400 transition-colors line-clamp-1"
                       >
                         {b.manga.title}
                       </Link>
@@ -850,7 +850,7 @@ export default function UserProfilePage() {
 
                       <div className="mt-1">
                         {b.unreadChapters > 0 ? (
-                          <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                          <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono">
                             {b.unreadChapters} unread
                           </span>
                         ) : (
@@ -868,7 +868,7 @@ export default function UserProfilePage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300"
+                          className="text-xs border-amber-500/30 hover:bg-amber-500/10 text-amber-300"
                         >
                           Resume (Ch. {b.readingProgress.chapterNumber})
                         </Button>
@@ -878,7 +878,7 @@ export default function UserProfilePage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs border-white/10 hover:border-emerald-500/30"
+                          className="text-xs border-white/10 hover:border-amber-500/30 text-slate-200"
                         >
                           Start Reading
                         </Button>
@@ -900,13 +900,13 @@ export default function UserProfilePage() {
             </div>
           ) : (
             <div className="py-16 text-center text-muted-foreground space-y-3 rounded-3xl liquid-glass border border-dashed border-white/10">
-              <Bookmark className="h-10 w-10 mx-auto opacity-30 text-emerald-400" />
+              <Bookmark className="h-10 w-10 mx-auto opacity-30 text-amber-400" />
               <p className="text-sm font-semibold text-foreground">No bookmarks saved yet</p>
               <p className="text-xs">
                 Unlike common scan sites that lose your bookmarks after 20 titles, our database maintains unlimited bookmarks permanently with offline sync.
               </p>
               <Link href="/browse">
-                <Button size="sm" variant="outline" className="border-white/10 hover:border-emerald-500/30">
+                <Button size="sm" variant="outline" className="border-white/10 hover:border-amber-500/30">
                   Explore Manga
                 </Button>
               </Link>
@@ -954,7 +954,7 @@ export default function UserProfilePage() {
               {filteredHistory.map((hist) => (
                 <div
                   key={hist.id}
-                  className="p-4 rounded-2xl liquid-glass border border-white/[0.08] hover:border-sky-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="p-4 rounded-2xl liquid-glass border border-white/[0.08] hover:border-blue-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="w-12 h-16 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-black/40">
@@ -973,7 +973,7 @@ export default function UserProfilePage() {
                     <div className="space-y-1">
                       <Link
                         href={`/manga/${hist.manga.slug}`}
-                        className="font-bold text-sm text-foreground hover:text-sky-400 transition-colors line-clamp-1"
+                        className="font-bold text-sm text-foreground hover:text-blue-400 transition-colors line-clamp-1"
                       >
                         {hist.manga.title}
                       </Link>
@@ -994,7 +994,7 @@ export default function UserProfilePage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs border-white/10 hover:border-sky-500/30"
+                        className="text-xs border-white/10 hover:border-blue-500/30 text-slate-200"
                       >
                         Resume Reading
                       </Button>
@@ -1012,11 +1012,11 @@ export default function UserProfilePage() {
             </div>
           ) : (
             <div className="py-16 text-center text-muted-foreground space-y-3 rounded-3xl liquid-glass border border-dashed border-white/10">
-              <Clock className="h-10 w-10 mx-auto opacity-30 text-sky-400" />
+              <Clock className="h-10 w-10 mx-auto opacity-30 text-blue-400" />
               <p className="text-sm font-semibold text-foreground">Reading history is empty</p>
               <p className="text-xs">Chapters you read will appear here automatically with exact page checkpoints.</p>
               <Link href="/browse">
-                <Button size="sm" variant="outline" className="border-white/10 hover:border-sky-500/30">
+                <Button size="sm" variant="outline" className="border-white/10 hover:border-blue-500/30">
                   Start Reading
                 </Button>
               </Link>
@@ -1033,7 +1033,7 @@ export default function UserProfilePage() {
           {/* Section A: Account Details */}
           <div className="rounded-3xl liquid-glass p-6 sm:p-7 border border-white/[0.08] space-y-5">
             <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-              <User className="h-5 w-5 text-sky-400" />
+              <User className="h-5 w-5 text-blue-400" />
               Account Details
             </h2>
 
@@ -1166,7 +1166,7 @@ export default function UserProfilePage() {
           {/* Section C: Default Reader Settings */}
           <div className="rounded-3xl liquid-glass p-6 sm:p-7 border border-white/[0.08] space-y-5">
             <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-              <Sliders className="h-5 w-5 text-cyan-400" />
+              <Sliders className="h-5 w-5 text-slate-400" />
               Default Reader Preferences
             </h2>
 
@@ -1175,7 +1175,7 @@ export default function UserProfilePage() {
                 className={`p-3 rounded-xl text-xs font-semibold ${
                   prefMessage.error
                     ? "bg-rose-500/10 text-rose-300 border border-rose-500/30"
-                    : "bg-cyan-500/10 text-cyan-300 border border-cyan-500/30"
+                    : "bg-blue-500/15 text-blue-200 border border-blue-400/30"
                 }`}
               >
                 {prefMessage.text}
@@ -1231,7 +1231,7 @@ export default function UserProfilePage() {
                     onChange={(e) => setBgColor(e.target.value)}
                     className="liquid-glass-input w-full px-3 py-2 text-xs rounded-xl"
                   >
-                    <option value="DARK" className="bg-[#0f141c]">Dark (#0b0f17)</option>
+                    <option value="DARK" className="bg-[#0f141c]">Dark Obsidian (#06080D)</option>
                     <option value="BLACK" className="bg-[#0f141c]">Pure Black (#000000)</option>
                     <option value="GRAY" className="bg-[#0f141c]">Charcoal</option>
                     <option value="LIGHT" className="bg-[#0f141c]">Light</option>
@@ -1250,11 +1250,11 @@ export default function UserProfilePage() {
                   step="2"
                   value={pageGap}
                   onChange={(e) => setPageGap(Number(e.target.value))}
-                  className="w-full accent-cyan-400"
+                  className="w-full accent-blue-500"
                 />
               </div>
 
-              <Button type="submit" size="sm" variant="outline" disabled={isSavingPrefs} className="border-white/10 hover:border-cyan-500/40">
+              <Button type="submit" size="sm" variant="outline" disabled={isSavingPrefs} className="border-white/10 hover:border-blue-400/40">
                 {isSavingPrefs ? "Saving Defaults..." : "Save Reader Defaults"}
               </Button>
             </form>
@@ -1263,7 +1263,7 @@ export default function UserProfilePage() {
           {/* Section D: Data Portability & Anti-Loss Backup */}
           <div className="rounded-3xl liquid-glass p-6 sm:p-7 border border-white/[0.08] space-y-4">
             <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-              <Download className="h-5 w-5 text-emerald-400" />
+              <Download className="h-5 w-5 text-blue-400" />
               Data Ownership & Anti-Loss Protection
             </h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1287,15 +1287,15 @@ export default function UserProfilePage() {
                 variant="outline"
                 size="sm"
                 onClick={handleExportData}
-                className="text-xs gap-1.5 border-white/10 hover:border-emerald-500/40 text-emerald-300"
+                className="text-xs gap-1.5 border-white/10 hover:border-blue-400/40 text-blue-300"
               >
                 <Download className="h-4 w-4" />
                 Export Full Backup (JSON)
               </Button>
 
               <label className="cursor-pointer">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 hover:border-sky-400/40 liquid-glass-pill text-xs font-semibold text-slate-300 transition-all">
-                  <Upload className="h-4 w-4 text-sky-400" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 hover:border-blue-400/40 liquid-glass-pill text-xs font-semibold text-slate-300 transition-all">
+                  <Upload className="h-4 w-4 text-blue-400" />
                   {isImporting ? "Restoring..." : "Restore from Backup"}
                 </span>
                 <input

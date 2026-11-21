@@ -20,7 +20,7 @@ const buttonVariants = cva(
         glass:
           "bg-white/[0.10] hover:bg-white/[0.18] text-white border border-white/20 backdrop-blur-2xl shadow-xl shadow-black/30 hover:border-white/35 active:scale-[0.98]",
         link:
-          "text-sky-400 underline-offset-4 hover:underline",
+          "text-blue-400 underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2 text-xs",

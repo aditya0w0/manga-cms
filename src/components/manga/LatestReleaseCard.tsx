@@ -59,7 +59,7 @@ export function LatestReleaseCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <BookOpen className="h-6 w-6 opacity-30 text-sky-400" />
+            <BookOpen className="h-6 w-6 opacity-30 text-blue-400" />
           </div>
         )}
       </Link>
@@ -69,13 +69,13 @@ export function LatestReleaseCard({
         <div>
           <div className="flex items-center gap-1.5 mb-1">
             {contentType && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full liquid-glass-chip text-sky-300">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full liquid-glass-chip text-blue-200 border-white/15">
                 {contentType}
               </span>
             )}
           </div>
           <Link href={`/manga/${slug}`}>
-            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate hover:text-sky-300 transition-colors">
+            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate hover:text-blue-300 transition-colors">
               {title}
             </h4>
           </Link>
