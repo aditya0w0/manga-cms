@@ -23,8 +23,10 @@ export default async function HomePage() {
     getRecentlyUpdated(6),
     getMangaList({ sortBy: "rating", limit: 6, minRating: 7.0 }),
     db.genre.findMany({
+      where: { mangas: { some: {} } },
       take: 12,
       include: { _count: { select: { mangas: true } } },
+      orderBy: { mangas: { _count: "desc" } },
     }),
   ]);
 

@@ -45,7 +45,7 @@ export function LatestReleaseCard({
       {/* Cover Image Thumbnail */}
       <Link
         href={`/manga/${slug}`}
-        className="relative h-24 w-18 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/[0.04] group shadow-sm"
+        className="relative h-24 w-16 sm:w-20 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/[0.04] group shadow-sm"
       >
         {currentSrc && !imageError ? (
           // eslint-disable-next-line @next/next/no-img-element

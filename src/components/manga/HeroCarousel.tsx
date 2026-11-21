@@ -44,9 +44,9 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-[28px] liquid-glass liquid-glass-glare shadow-2xl h-[380px] sm:h-[440px] flex items-end sm:items-center"
+      className="relative w-full overflow-hidden rounded-[28px] liquid-glass liquid-glass-glare shadow-2xl h-[420px] sm:h-[480px] flex items-end sm:items-center"
     >
-      {/* Big Full-Bleed Manga Banner Background */}
+      {/* Big Full-Bleed Manga Banner Background: Aligned to top so character faces are never cut off */}
       <div className="absolute inset-0 z-0">
         {current.bannerUrl || current.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -60,7 +60,7 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
                 e.currentTarget.src = getProxyFallbackUrl(url);
               }
             }}
-            className="h-full w-full object-cover object-center transition-all duration-700"
+            className="h-full w-full object-cover object-top transition-all duration-700"
           />
         ) : (
           <div className="h-full w-full bg-slate-900" />

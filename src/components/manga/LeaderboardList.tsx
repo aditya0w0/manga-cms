@@ -32,9 +32,9 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
   return (
     <div
       ref={panelRef}
-      className="flex flex-col h-full rounded-[28px] liquid-glass liquid-glass-glare p-5 sm:p-6 shadow-2xl justify-between"
+      className="flex flex-col h-full rounded-[28px] liquid-glass liquid-glass-glare p-5 sm:p-6 shadow-2xl"
     >
-      <div className="flex items-center justify-between pb-4 border-b border-white/10">
+      <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
         <div>
           <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
             Top Leaderboard
@@ -51,7 +51,7 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
         </Link>
       </div>
 
-      <div className="flex flex-col divide-y divide-white/5 flex-1 justify-between pt-2">
+      <div className="flex flex-col divide-y divide-white/5 flex-1 justify-start pt-1.5">
         {items.slice(0, 5).map((item, index) => {
           const rank = index + 1;
           const rankColor =
@@ -130,6 +130,16 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
             </Link>
           );
         })}
+      </div>
+
+      <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span className="font-mono text-slate-400">Updated hourly</span>
+        <Link
+          href="/browse?sortBy=popularity"
+          className="font-medium text-slate-300 hover:text-white transition-colors"
+        >
+          View Full Rankings &rarr;
+        </Link>
       </div>
     </div>
   );

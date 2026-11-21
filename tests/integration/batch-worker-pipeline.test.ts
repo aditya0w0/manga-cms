@@ -12,17 +12,38 @@ import { StreamingArchiveReader } from "@/modules/upload-pipeline/source-reader"
 describe("Phase 4: Standalone Background Worker & Batch Queue Pipeline", () => {
   const tempDir = path.join(os.tmpdir(), `worker_pipeline_test_${Date.now()}`);
 
-  beforeEach(async () => {
+  const cleanTestEntities = async () => {
     const db = await getPrisma();
     await db.importChapterJob.deleteMany();
     await db.importComicJob.deleteMany();
     await db.importBatch.deleteMany();
+    const testMangas = await db.manga.findMany({
+      where: {
+        OR: [
+          { slug: { startsWith: "worker-comic" } },
+          { slug: { startsWith: "fault-comic" } },
+          { slug: { startsWith: "stale-comic" } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (testMangas.length > 0) {
+      const ids = testMangas.map((m) => m.id);
+      await db.chapterPage.deleteMany({ where: { chapter: { mangaId: { in: ids } } } });
+      await db.chapter.deleteMany({ where: { mangaId: { in: ids } } });
+      await db.manga.deleteMany({ where: { id: { in: ids } } });
+    }
+  };
+
+  beforeEach(async () => {
+    await cleanTestEntities();
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await cleanTestEntities();
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

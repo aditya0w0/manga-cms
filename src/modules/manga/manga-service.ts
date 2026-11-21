@@ -165,7 +165,7 @@ export async function getFeaturedManga(limit = 6) {
 
 export async function getTrendingManga(limit = 10) {
   const db = await getPrisma();
-  return db.manga.findMany({
+  const trending = await db.manga.findMany({
     where: {
       publicationStatus: PublicationStatus.PUBLISHED,
       isTrending: true,
@@ -181,6 +181,29 @@ export async function getTrendingManga(limit = 10) {
       },
     },
   });
+
+  if (trending.length < limit) {
+    const existingIds = trending.map((m) => m.id);
+    const fillers = await db.manga.findMany({
+      where: {
+        publicationStatus: PublicationStatus.PUBLISHED,
+        id: { notIn: existingIds },
+      },
+      orderBy: { viewCount: "desc" },
+      take: limit - trending.length,
+      include: {
+        genres: { include: { genre: true } },
+        chapters: {
+          where: { publicationStatus: PublicationStatus.PUBLISHED },
+          orderBy: { chapterNumber: "desc" },
+          take: 1,
+        },
+      },
+    });
+    return [...trending, ...fillers];
+  }
+
+  return trending;
 }
 
 export async function getRecentlyUpdated(limit = 12) {
