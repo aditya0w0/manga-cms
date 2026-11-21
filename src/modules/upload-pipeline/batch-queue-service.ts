@@ -83,25 +83,30 @@ export class BatchQueueService {
           },
         });
 
-        for (const ch of comic.chapters) {
-          await tx.importChapterJob.create({
-            data: {
-              batchId: batch.id,
-              comicJobId: comicJob.id,
-              mangaId: manga.id,
-              chapterKey: ch.chapterKey,
-              displayNumber: ch.displayNumber,
-              sortKey: ch.sortKey,
-              volume: ch.volume,
-              title: ch.title,
-              sourcePath: ch.sourcePath,
-              sourceType: ch.sourceType,
-              explicitPagesJson: ch.explicitPages ? (ch.explicitPages as any) : undefined,
-              idempotencyKey: ch.idempotencyKey,
-              status: "PENDING",
-              attempts: 0,
-              maxAttempts: 3,
-            },
+        const chapterRows = comic.chapters.map((ch) => ({
+          id: crypto.randomUUID(),
+          batchId: batch.id,
+          comicJobId: comicJob.id,
+          mangaId: manga.id,
+          chapterKey: ch.chapterKey,
+          displayNumber: ch.displayNumber,
+          sortKey: ch.sortKey,
+          volume: ch.volume,
+          title: ch.title,
+          sourcePath: ch.sourcePath,
+          sourceType: ch.sourceType,
+          explicitPagesJson: ch.explicitPages ? (ch.explicitPages as any) : undefined,
+          idempotencyKey: ch.idempotencyKey,
+          status: "PENDING" as BatchJobStatus,
+          attempts: 0,
+          maxAttempts: 3,
+        }));
+
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < chapterRows.length; i += CHUNK_SIZE) {
+          const chunk = chapterRows.slice(i, i + CHUNK_SIZE);
+          await tx.importChapterJob.createMany({
+            data: chunk,
           });
         }
       }
