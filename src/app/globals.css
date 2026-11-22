@@ -88,6 +88,11 @@
     inset 0 -1px 1px 0 rgba(0, 0, 0, 0.35),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   position: relative;
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -119,7 +124,13 @@
     transparent 70%
   );
   pointer-events: none;
-  transition: opacity 0.15s ease;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity;
+}
+
+.liquid-glass-glare:hover::after {
+  opacity: var(--glare-opacity, 1);
 }
 
 .light .liquid-glass,
@@ -155,6 +166,9 @@
     inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.55),
     inset 0 -1px 1px 0 rgba(0, 0, 0, 0.40),
     inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .light .liquid-glass-elevated {
@@ -184,6 +198,9 @@
     0 20px 50px rgba(0, 0, 0, 0.65),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.40),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* Floating Glass Header Navigation Ribbon */
@@ -199,6 +216,9 @@
   box-shadow:
     0 12px 36px rgba(0, 0, 0, 0.45),
     inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* Liquid Glass Interactive Pill / Chip */
@@ -349,6 +369,10 @@
     0 4px 12px rgba(0, 0, 0, 0.25),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.40),
     inset 0 -1px 1px 0 rgba(0, 0, 0, 0.30);
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  contain: paint;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -359,6 +383,42 @@
     0 6px 18px rgba(0, 0, 0, 0.35),
     inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.60);
   transform: translateY(-2px);
+}
+
+/* Apple Materials Hierarchy: Suppress redundant nested blur passes inside glass containers */
+.liquid-glass-header .liquid-glass-pill,
+.liquid-glass-header .liquid-glass-chip,
+.liquid-glass-header .liquid-glass-input,
+.liquid-glass .liquid-glass-pill,
+.liquid-glass .liquid-glass-chip,
+.liquid-glass .liquid-glass-input,
+.liquid-glass .liquid-glass-btn-secondary,
+.liquid-glass-panel .liquid-glass-pill,
+.liquid-glass-panel .liquid-glass-chip,
+.liquid-glass-panel .liquid-glass-input,
+.liquid-glass-panel .liquid-glass-btn-secondary,
+.liquid-glass-elevated .liquid-glass-pill,
+.liquid-glass-elevated .liquid-glass-chip,
+.liquid-glass-elevated .liquid-glass-input,
+.liquid-glass-elevated .liquid-glass-btn-secondary {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass,
+  .liquid-glass-panel,
+  .liquid-glass-elevated,
+  .liquid-glass-obsidian,
+  .liquid-glass-header,
+  .liquid-glass-card {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    transition: none !important;
+  }
+  .liquid-glass-glare::after {
+    display: none !important;
+  }
 }
 
 /* Liquid Glass Status Badges (Restrained Semantic Palette) */

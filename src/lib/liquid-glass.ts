@@ -22,21 +22,65 @@ export interface LiquidGlassInstance {
 const SVG_NS = "http://www.w3.org/2000/svg";
 let uid = 0;
 let svgDefs: SVGDefsElement | null = null;
+let cachedSupported: boolean | null = null;
 
-// Chromium supports SVG filters via backdrop-filter; Safari and Firefox fallback
+// Reusable canvas and map cache to prevent memory churn and GC pauses
+const MAX_DIM = 192;
+const mapCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 50;
+
+let sharedCanvas: HTMLCanvasElement | null = null;
+let sharedCtx: CanvasRenderingContext2D | null = null;
+
+function getSharedCanvas(width: number, height: number): {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D | null;
+} | null {
+  if (typeof document === "undefined") return null;
+  if (!sharedCanvas) {
+    sharedCanvas = document.createElement("canvas");
+    sharedCtx = sharedCanvas.getContext("2d", { willReadFrequently: false });
+  }
+  if (!sharedCanvas || !sharedCtx) return null;
+  sharedCanvas.width = width;
+  sharedCanvas.height = height;
+  return { canvas: sharedCanvas, ctx: sharedCtx };
+}
+
+// Chromium supports SVG filters via backdrop-filter; Safari, Firefox, and reduced motion fallback
 const isChromiumSupported = (): boolean => {
-  if (typeof window === "undefined" || typeof document === "undefined") return false;
+  if (cachedSupported !== null) return cachedSupported;
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return false;
+  }
+
+  // Respect system reduced-motion preference (Apple HIG / Accessibility)
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    cachedSupported = false;
+    return false;
+  }
+
   const ua = navigator.userAgent;
   const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
   const isFirefox = /Firefox/.test(ua);
-  if (isSafari || isFirefox) return false;
-  if (!CSS.supports("backdrop-filter", "url(#lg)")) return false;
+  if (isSafari || isFirefox) {
+    cachedSupported = false;
+    return false;
+  }
+
+  if (!CSS.supports("backdrop-filter", "url(#lg)")) {
+    cachedSupported = false;
+    return false;
+  }
+
   try {
     const c = document.createElement("canvas");
     c.width = c.height = 4;
     c.getContext("2d")?.getImageData(0, 0, 1, 1);
+    cachedSupported = true;
     return true;
   } catch {
+    cachedSupported = false;
     return false;
   }
 };
@@ -57,7 +101,10 @@ function ensureDefs(): SVGDefsElement {
   return svgDefs;
 }
 
-// Generates the red/blue displacement map via canvas data URL
+/**
+ * Generates the red/blue displacement map via downscaled canvas with bilinear sampling.
+ * Normalized to max 192px to eliminate multi-megabyte base64 overhead and GPU stalls.
+ */
 function makeMap(
   w: number,
   h: number,
@@ -65,47 +112,78 @@ function makeMap(
   border: number,
   mapBlur: number
 ): string {
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(w));
-  canvas.height = Math.max(1, Math.round(h));
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
+  const safeW = Math.max(1, Math.round(w));
+  const safeH = Math.max(1, Math.round(h));
+  const aspect = safeW / safeH;
+
+  let cw = safeW;
+  let ch = safeH;
+  if (safeW > MAX_DIM || safeH > MAX_DIM) {
+    if (safeW >= safeH) {
+      cw = MAX_DIM;
+      ch = Math.max(16, Math.round(MAX_DIM / aspect));
+    } else {
+      ch = MAX_DIM;
+      cw = Math.max(16, Math.round(MAX_DIM * aspect));
+    }
+  }
+
+  const scaleFactor = cw / safeW;
+  const scaledRadius = Math.max(2, Math.round(radius * scaleFactor));
+  const scaledInset = Math.max(1, Math.round(border * Math.min(cw, ch)));
+  const scaledBlur = Math.max(1, Math.round(mapBlur * scaleFactor));
+
+  const cacheKey = `${cw}_${ch}_${scaledRadius}_${scaledInset}_${scaledBlur}`;
+  const cached = mapCache.get(cacheKey);
+  if (cached) return cached;
+
+  const target = getSharedCanvas(cw, ch);
+  if (!target || !target.ctx) return "";
+  const ctx = target.ctx;
 
   // Red ramp: left to right encodes X displacement
-  const gx = ctx.createLinearGradient(0, 0, w, 0);
+  const gx = ctx.createLinearGradient(0, 0, cw, 0);
   gx.addColorStop(0, "rgb(0,0,0)");
   gx.addColorStop(1, "rgb(255,0,0)");
   ctx.fillStyle = gx;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0, 0, cw, ch);
 
   // Blue ramp: top to bottom encodes Y displacement
-  const gy = ctx.createLinearGradient(0, 0, 0, h);
+  const gy = ctx.createLinearGradient(0, 0, 0, ch);
   gy.addColorStop(0, "rgb(0,0,0)");
   gy.addColorStop(1, "rgb(0,0,255)");
   ctx.globalCompositeOperation = "difference";
   ctx.fillStyle = gy;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0, 0, cw, ch);
 
   // Neutralized interior: blurred 50% gray rounded rect
   ctx.globalCompositeOperation = "source-over";
-  const inset = border * Math.min(w, h);
-  ctx.filter = `blur(${mapBlur}px)`;
+  ctx.filter = `blur(${scaledBlur}px)`;
   ctx.fillStyle = "rgba(128,128,128,0.93)";
   ctx.beginPath();
   if (typeof ctx.roundRect === "function") {
     ctx.roundRect(
-      inset,
-      inset,
-      Math.max(1, w - inset * 2),
-      Math.max(1, h - inset * 2),
-      Math.max(radius - inset, 2)
+      scaledInset,
+      scaledInset,
+      Math.max(1, cw - scaledInset * 2),
+      Math.max(1, ch - scaledInset * 2),
+      Math.max(scaledRadius - scaledInset, 2)
     );
   } else {
-    ctx.rect(inset, inset, Math.max(1, w - inset * 2), Math.max(1, h - inset * 2));
+    ctx.rect(scaledInset, scaledInset, Math.max(1, cw - scaledInset * 2), Math.max(1, ch - scaledInset * 2));
   }
   ctx.fill();
   ctx.filter = "none";
-  return canvas.toDataURL();
+
+  const dataUri = target.canvas.toDataURL("image/png");
+
+  if (mapCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = mapCache.keys().next().value;
+    if (firstKey) mapCache.delete(firstKey);
+  }
+  mapCache.set(cacheKey, dataUri);
+
+  return dataUri;
 }
 
 function buildFilter(id: string, scales: [number, number, number]) {
@@ -176,7 +254,8 @@ function resolveRadius(el: HTMLElement, w: number, h: number, override?: number 
 
 /**
  * Apply optical liquid glass to any HTML element.
- * Based on deepika-builds/liquid-glass specification.
+ * Follows Apple materials architecture: hardware compositing isolation,
+ * resolution-independent displacement maps, and layout thrashing prevention.
  */
 export function liquidGlass(el: HTMLElement, opts?: LiquidGlassOptions): LiquidGlassInstance {
   const o = Object.assign(
@@ -219,10 +298,17 @@ export function liquidGlass(el: HTMLElement, opts?: LiquidGlassOptions): LiquidG
   ];
   const parts = buildFilter(id, scales);
 
+  let lastW = 0;
+  let lastH = 0;
+
   function refresh() {
     const w = el.offsetWidth;
     const h = el.offsetHeight;
     if (!w || !h) return;
+    if (Math.abs(w - lastW) < 2 && Math.abs(h - lastH) < 2) return;
+    lastW = w;
+    lastH = h;
+
     const radius = resolveRadius(el, w, h, o.radius);
     const mapUri = makeMap(w, h, radius, o.border, o.mapBlur);
     if (mapUri) {
@@ -235,10 +321,16 @@ export function liquidGlass(el: HTMLElement, opts?: LiquidGlassOptions): LiquidG
   refresh();
   el.style.backdropFilter = `url(#${id}) blur(${o.blur}px) saturate(${o.saturate})`;
 
-  let timer: NodeJS.Timeout | null = null;
-  const ro = new ResizeObserver(() => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(refresh, 100);
+  let rafId: number | null = null;
+  const ro = new ResizeObserver((entries) => {
+    const entry = entries[0];
+    if (!entry) return;
+    const newW = Math.round(entry.contentRect.width);
+    const newH = Math.round(entry.contentRect.height);
+    if (Math.abs(newW - lastW) < 2 && Math.abs(newH - lastH) < 2) return;
+
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(refresh);
   });
   ro.observe(el);
 
@@ -247,7 +339,7 @@ export function liquidGlass(el: HTMLElement, opts?: LiquidGlassOptions): LiquidG
     refresh,
     destroy: () => {
       ro.disconnect();
-      if (timer) clearTimeout(timer);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       parts.filter.remove();
       el.style.backdropFilter = "";
     },
@@ -256,6 +348,8 @@ export function liquidGlass(el: HTMLElement, opts?: LiquidGlassOptions): LiquidG
 
 /**
  * React hook to attach Apple-style liquid glass optics and specular pointer glare.
+ * Optimized with requestAnimationFrame batching, bounding box caching, and zero
+ * layout thrashing during mouse movement.
  */
 export function useLiquidGlass<T extends HTMLElement = HTMLDivElement>(
   opts?: LiquidGlassOptions,
@@ -263,33 +357,105 @@ export function useLiquidGlass<T extends HTMLElement = HTMLDivElement>(
 ): RefObject<T> {
   const ref = useRef<T>(null);
 
+  // Extract primitive parameters to prevent re-execution on inline object literals
+  const scale = opts?.scale ?? -90;
+  const chroma = opts?.chroma ?? 5;
+  const border = opts?.border ?? 0.06;
+  const mapBlur = opts?.mapBlur ?? 10;
+  const blur = opts?.blur ?? 3;
+  const saturate = opts?.saturate ?? 1.6;
+  const radius = opts?.radius ?? null;
+  const fallbackBlur = opts?.fallbackBlur ?? 18;
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const instance = liquidGlass(el, opts);
+    const instance = liquidGlass(el, {
+      scale,
+      chroma,
+      border,
+      mapBlur,
+      blur,
+      saturate,
+      radius,
+      fallbackBlur,
+    });
 
-    let handlePointerMove: ((e: PointerEvent) => void) | null = null;
-    if (enableGlare) {
-      handlePointerMove = (e: PointerEvent) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          const gx = ((e.clientX - rect.left) / rect.width) * 100;
-          const gy = ((e.clientY - rect.top) / rect.height) * 100;
-          el.style.setProperty("--gx", `${gx.toFixed(1)}%`);
-          el.style.setProperty("--gy", `${gy.toFixed(1)}%`);
-        }
-      };
-      el.addEventListener("pointermove", handlePointerMove);
+    let rafId: number | null = null;
+    let cachedRect: DOMRect | null = null;
+    let lastClientX = 0;
+    let lastClientY = 0;
+
+    const updateGlare = () => {
+      rafId = null;
+      if (!cachedRect) {
+        cachedRect = el.getBoundingClientRect();
+      }
+      if (cachedRect.width > 0 && cachedRect.height > 0) {
+        const gx = Math.max(-5, Math.min(105, ((lastClientX - cachedRect.left) / cachedRect.width) * 100));
+        const gy = Math.max(-5, Math.min(105, ((lastClientY - cachedRect.top) / cachedRect.height) * 100));
+        el.style.setProperty("--gx", `${gx.toFixed(1)}%`);
+        el.style.setProperty("--gy", `${gy.toFixed(1)}%`);
+      }
+    };
+
+    const handlePointerEnter = () => {
+      cachedRect = el.getBoundingClientRect();
+      el.style.setProperty("--glare-opacity", "1");
+    };
+
+    const handlePointerLeave = () => {
+      cachedRect = null;
+      el.style.setProperty("--glare-opacity", "0");
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      lastClientX = e.clientX;
+      lastClientY = e.clientY;
+      if (rafId === null) {
+        rafId = requestAnimationFrame(updateGlare);
+      }
+    };
+
+    const handleInvalidateRect = () => {
+      cachedRect = null;
+    };
+
+    if (enableGlare && instance.supported) {
+      el.addEventListener("pointerenter", handlePointerEnter, { passive: true });
+      el.addEventListener("pointerleave", handlePointerLeave, { passive: true });
+      el.addEventListener("pointermove", handlePointerMove, { passive: true });
+      window.addEventListener("scroll", handleInvalidateRect, { passive: true });
+      window.addEventListener("resize", handleInvalidateRect, { passive: true });
     }
 
     return () => {
       instance.destroy();
-      if (handlePointerMove) {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (enableGlare) {
+        el.removeEventListener("pointerenter", handlePointerEnter);
+        el.removeEventListener("pointerleave", handlePointerLeave);
         el.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("scroll", handleInvalidateRect);
+        window.removeEventListener("resize", handleInvalidateRect);
       }
     };
-  }, [opts, enableGlare]);
+  }, [
+    scale,
+    chroma,
+    border,
+    mapBlur,
+    blur,
+    saturate,
+    radius,
+    fallbackBlur,
+    enableGlare,
+  ]);
 
   return ref;
 }

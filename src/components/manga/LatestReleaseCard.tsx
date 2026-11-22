@@ -53,6 +53,7 @@ export function LatestReleaseCard({
             src={currentSrc}
             alt={title}
             loading="lazy"
+            decoding="async"
             referrerPolicy="no-referrer"
             onError={handleError}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

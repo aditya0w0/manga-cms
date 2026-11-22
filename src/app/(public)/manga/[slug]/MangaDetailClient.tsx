@@ -163,6 +163,9 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
             <img
               src={getSafeImageUrl(manga.bannerUrl || manga.coverUrl)}
               alt={manga.title}
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 const url = manga.bannerUrl || manga.coverUrl;
@@ -188,6 +191,8 @@ export function MangaDetailClient({ initialManga }: { initialManga: any }) {
                 <img
                   src={getSafeImageUrl(manga.coverUrl)}
                   alt={manga.title}
+                  loading="eager"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     if (manga.coverUrl && !e.currentTarget.src.includes("/api/image-proxy")) {

@@ -13,7 +13,7 @@ import { LeaderboardList } from "@/components/manga/LeaderboardList";
 import { LatestReleaseCard } from "@/components/manga/LatestReleaseCard";
 import { MangaCard } from "@/components/manga/MangaCard";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function HomePage() {
   const db = await getPrisma();

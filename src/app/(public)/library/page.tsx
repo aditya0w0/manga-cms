@@ -164,6 +164,8 @@ export default function LibraryPage() {
                       <img
                         src={getSafeImageUrl(hist.manga.coverUrl)}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                           if (hist.manga.coverUrl && !e.currentTarget.src.includes("/api/image-proxy")) {

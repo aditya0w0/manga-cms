@@ -53,6 +53,9 @@ export function HeroCarousel({ items }: { items: FeaturedMangaItem[] }) {
           <img
             src={getSafeImageUrl(current.bannerUrl || current.coverUrl)}
             alt={current.title}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
             referrerPolicy="no-referrer"
             onError={(e) => {
               const url = current.bannerUrl || current.coverUrl;

@@ -383,6 +383,8 @@ export default function UserProfilePage() {
                 <img
                   src={user.avatarUrl}
                   alt={user.username}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -547,6 +549,9 @@ export default function UserProfilePage() {
                           <img
                             src={getSafeImageUrl(hist.manga.coverUrl)}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
+                            referrerPolicy="no-referrer"
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -620,6 +625,9 @@ export default function UserProfilePage() {
                         <img
                           src={getSafeImageUrl(b.manga.coverUrl)}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -713,6 +721,9 @@ export default function UserProfilePage() {
                         <img
                           src={getSafeImageUrl(item.manga.coverUrl)}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -828,6 +839,9 @@ export default function UserProfilePage() {
                         <img
                           src={getSafeImageUrl(b.manga.coverUrl)}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -963,6 +977,9 @@ export default function UserProfilePage() {
                         <img
                           src={getSafeImageUrl(hist.manga.coverUrl)}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover"
                         />
                       ) : (

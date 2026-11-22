@@ -86,6 +86,7 @@ export function LeaderboardList({ items }: { items: LeaderboardItem[] }) {
                     src={getSafeImageUrl(item.coverUrl)}
                     alt={item.title}
                     loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       const url = item.coverUrl;

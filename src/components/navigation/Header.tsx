@@ -135,6 +135,7 @@ export function Header() {
                     <img
                       src={user.avatarUrl}
                       alt={user.username}
+                      decoding="async"
                       className="h-7 w-7 rounded-full object-cover"
                     />
                   ) : (
